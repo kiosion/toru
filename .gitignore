@@ -1,0 +1,8 @@
+# node
+/node_modules
+
+# mac os shit
+.DS_STORE
+
+# misc
+/out
