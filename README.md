@@ -4,7 +4,7 @@
 </div>
 
 ## Demo 🚧
-[![Currently listening](https://toru.kio.dev/api/v1/kiosion/?theme=dark&)](https://last.fm/user/kiosion)
+[![Currently listening](https://toru.kio.dev/api/v1/kiosion/?theme=dracula&)](https://last.fm/user/kiosion)
 
 ## Usage 🔧
 Simply add the following snippet to your Github profile readme (or anywhere else you'd like to embed your last.fm activity):
