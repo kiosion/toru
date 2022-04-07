@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 
 const app = express();
 
-import { procOptions, imgRes } from './types.d';
+import { imgRes } from './types.d';
 
 import lfm from './lib/lfm';
 import img from './lib/img';
@@ -12,7 +12,6 @@ import img from './lib/img';
 app.get('/', (req, res) => {
 	res.send('Shoo! Nothing to see here');
 });
-
 app.get('/api(/)?', (req, res) => {
 	res.send('Shoo! Nothing to see here');
 })
@@ -20,7 +19,7 @@ app.get('/api(/)?', (req, res) => {
 // API routes
 app.get('/api/v1/(*)/?', (req, res) => {
 	// Check username is provided
-	if ((req.url.split('/')[3].split('/?')[0]) == null) {
+	if ((req.url.split('/')[3].split('/?')[0]) == null || (req.url.split('/')[3].split('/?')[0]) == '') {
 		res.status(404).send('Username not provided!');
 		return;
 	}
@@ -32,21 +31,22 @@ app.get('/api/v1/(*)/?', (req, res) => {
 		.then((data: any) => {
 			console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
 			switch (req.query['res']) {
-				case 'art': {
+				case 'cover': {
 					try {
 						const url: string = data.recenttracks.track[0].image[3]['#text'];
 						if (url == null) throw new Error('Album art URL not found');
 						fetch(url)
 							.then((actual) => {
 								actual.headers.forEach((v, n) => res.setHeader(n, v));
+								res.set('Age', '0');
+								res.set('Cache-Control', 'public, max-age=0, must-revalidate');
 								actual.body?.pipe(res);
 							});
-						break;
 					} 
 					catch (error) {
 						res.status(500).send('' + error);
-						break;
 					}
+					break;
 				}
 				case 'json': {
 					res.send(
@@ -54,36 +54,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 					);
 					break;
 				}
-				case 'html': {
-					let tr_name: string = data.recenttracks.track[0].name;
-					let tr_artist: string = data.recenttracks.track[0].artist['#text'];
-					let tr_album: string = data.recenttracks.track[0].album['#text'];
-					let tr_art_url: string = data.recenttracks.track[0].image[3]['#text'];
-					let tr_url: string = data.recenttracks.track[0].url;
-					let tr_date: string = '';
-					if (data.recenttracks.track[0].date != null) tr_date = data.recenttracks.track[0].date['#text'];
-					if (data.recenttracks.track[0]['@attr'] != null && data.recenttracks.track[0]['@attr'].nowplaying == 'true') {
-						res.send(
-							'<div style="text-align:center;width:500px;height:600px;margin:auto;">' +
-							`<h2>@${uname}</h2>` +
-							`<p>Now playing:</p>` +
-							`<img src="${tr_art_url}" alt="Cover art" width="300" height="300">` +
-							`<p><a href="${tr_url}" target="_blank">'${tr_name}'</a><br>By ${tr_artist}, on ${tr_album}</p>` +
-							'</div>'
-						);
-					}
-					else {
-						res.send(
-							'<div style="text-align:center;width:500px;height:600px;margin:auto;">' +
-							`<h2>@${uname}</h2>` +
-							`<p>Last played (on ${tr_date}):</p>` +
-							`<img src="${tr_art_url}" alt="Cover art" width="300" height="300">` +
-							`<p><a href="${tr_url}" target="_blank">'${tr_name}'</a><br>By ${tr_artist}, on ${tr_album}</p>` +
-							'</div>'
-						);
-					}
-				}
-				break;
+				case 'embed':
 				default: {
 					let imgUrl: string = '';
 					// Terrible solution because last.fm doesn't have Stromae's album art for SOME REASON WHYYY
@@ -109,7 +80,6 @@ app.get('/api/v1/(*)/?', (req, res) => {
 							break;
 						}
 					}
-					//const imgBlur: boolean = req.query['bgblur']?.toString() == 'true';
 					const bRadius: number = parseInt(req.query.borderRadius?.toString() || '20');
 					const aRadius: number = parseInt(req.query.coverRadius?.toString() || '16');
 					const theme: string = req.query.theme?.toString() || 'light';
@@ -163,7 +133,6 @@ app.get('/api/v1/(*)/?', (req, res) => {
 								image: response.image,
 								buffer: response.buffer,
 								mimetype: response.mimetype,
-								bgBlur: false,
 								isPaused: false,
 								bRadius: bRadius,
 								aRadius: aRadius,
@@ -184,14 +153,14 @@ app.get('/api/v1/(*)/?', (req, res) => {
 									});
 								});
 						})
-						.catch((err) => {
-							res.status(500).send('' + err);
+						.catch((error) => {
+							res.status(500).send('' + error);
 						});
 				}
 				break;
 			}
 		})
-		.catch((error: any) => {
+		.catch((error) => {
 			res.status(500).send('' + error);
 		});
 });

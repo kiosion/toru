@@ -2,7 +2,6 @@ interface procOptions {
 	image: string;
 	buffer: Buffer;
 	mimetype: string;
-	bgBlur: boolean;
 	isPaused: boolean;
 	bRadius: number;
 	aRadius: number;
