@@ -84,7 +84,6 @@ app.get('/api/v1/(*)/?', (req, res) => {
 					}
 				}
 				break;
-				// temp for now, this needs to be split up BADLY lol
 				default: {
 					const imgUrl: string = data.recenttracks.track[0].image[3]['#text'];
 
@@ -140,6 +139,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 							img.process({
 								image: response.image,
 								mimetype: response.mimetype,
+								isPaused: false,
 								bRadius: bRadius,
 								aRadius: aRadius,
 								bgColour: theme_bgColour,
@@ -152,7 +152,6 @@ app.get('/api/v1/(*)/?', (req, res) => {
 								.then((procObj) => {
 									res.format({
 										'image/svg+xml': () => {
-											// Set header 'cache-control'
 											res.set('Age', '0');
 											res.set('Cache-Control', 'public, max-age=0, must-revalidate');
 											res.send(procObj);

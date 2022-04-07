@@ -1,6 +1,7 @@
 interface procOptions {
 	image: string;
 	mimetype: string;
+	isPaused: boolean;
 	bRadius: number;
 	aRadius: number;
 	bgColour: string;

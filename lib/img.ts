@@ -14,20 +14,6 @@ module img {
 		resolve({image, mimetype});
     });
 
-	export const removeTemp = (file1: string): boolean =>{
-		// After res, delete album art
-		try {
-			fs.unlink(file1, (err) => {
-				if (err) throw err;
-			});
-			return true;
-		}
-		catch (error) {
-			console.log('\t->error message: ', error);
-			return false;
-		}
-	}
-
 	export const getMeta = (path: string): Promise<any> => new Promise ((resolve, reject) => {
 		sharp(path).metadata()
 			.then((data) => {
