@@ -153,6 +153,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 									res.format({
 										'image/svg+xml': () => {
 											// Set header 'cache-control'
+											res.set('Age', '0');
 											res.set('Cache-Control', 'public, max-age=0, must-revalidate');
 											res.send(procObj);
 										}
