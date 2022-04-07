@@ -69,7 +69,7 @@ module img {
 						border-radius:${bRadius}px;
 						background-color:${bgColour};
 						color:${textColour};
-						padding: 0 12px;
+						padding: 0 14px;
 						box-sizing: border-box;
 						overflow: clip;
 					">
