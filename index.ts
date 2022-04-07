@@ -114,9 +114,9 @@ app.get('/api/v1/(*)/?', (req, res) => {
 						}
 						break;
 						case 'shoji': {
-							theme_bgColour = '#FFFFFF';
-							theme_textColour = '#404040';
-							theme_accentColour = '#404040';
+							theme_bgColour = '#E8E8E3';
+							theme_textColour = '#4D4D4D';
+							theme_accentColour = '#4D4D4D';
 						}
 						break;
 						case 'dark': {
@@ -127,7 +127,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 						break;
 						case 'light':
 						default: {
-							theme_bgColour = '#E6E6E6';
+							theme_bgColour = '#F2F2F2';
 							theme_textColour = '#1A1A1A';
 							theme_accentColour = '#8C8C8C';
 						}
