@@ -16,7 +16,13 @@ Simply add the following snippet to your Github profile readme (or anywhere else
 Toru has a few parameters you can customize through URL query strings:
 
 #### Theme
-The theme (currently either 'light' or 'dark') can be specified using `?theme=<theme>`
+The theme can be specified using `?theme=<theme>`. Available themes are:
+- light
+- dark
+- shoji
+- dracula
+- nord
+- solarized
 
 #### Border radius
 The border radius of the ember can be specified using `?borderRadius=<number>`
