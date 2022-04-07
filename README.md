@@ -4,12 +4,12 @@
 </div>
 
 ## Demo 🚧
-[![Currently listening](https://toru.kio.dev/api/v1/kiosion/?theme=dark&)](https://last.fm/user/kiosion)
+[![Currently listening](https://toru.kio.dev/api/v1/kiosion/?theme=dracula&)](https://last.fm/user/kiosion)
 
 ## Usage 🔧
 Simply add the following snippet to your Github profile readme (or anywhere else you'd like to embed your last.fm activity):
 ```
-[![Most Recent Last.fm Track](https://toru.kio.dev/api/v1/<your_lfm_username>/)](https://last.fm/user/<your_lfm_username>)
+[![Last.fm Activity](https://toru.kio.dev/api/v1/<your_lfm_username>/)](https://last.fm/user/<your_lfm_username>)
 ```
 
 ## Options ⚙️
