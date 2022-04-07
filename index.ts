@@ -94,15 +94,44 @@ app.get('/api/v1/(*)/?', (req, res) => {
 					let theme_bgColour = '';
 					let theme_textColour = '';
 					let theme_accentColour = '';
-					if (theme == 'dark') {
-						theme_bgColour = '#262626';
-						theme_textColour = '#e6e6e6';
-						theme_accentColour = '#b3b3b3';
-					}
-					else {
-						theme_bgColour = '#e6e6e6';
-						theme_textColour = '#1a1a1a';
-						theme_accentColour = '#8c8c8c';
+					switch (theme) {
+						case 'nord': {
+							theme_bgColour = '#2E3440';
+							theme_textColour = '#ECEFF4';
+							theme_accentColour = '#81A1C1';
+						}
+						break;
+						case 'dracula': {
+							theme_bgColour = '#282A36';
+							theme_textColour = '#F8F8F2';
+							theme_accentColour = '#6272A4';
+						}
+						break;
+						case 'solarized': {
+							theme_bgColour = '#FDF6E3';
+							theme_textColour = '#657B83';
+							theme_accentColour = '#839496';
+						}
+						break;
+						case 'shoji': {
+							theme_bgColour = '#FFFFFF';
+							theme_textColour = '#404040';
+							theme_accentColour = '#404040';
+						}
+						break;
+						case 'dark': {
+							theme_bgColour = '#1A1A1A';
+							theme_textColour = '#E6E6E6';
+							theme_accentColour = '#CCCCCC';
+						}
+						break;
+						case 'light':
+						default: {
+							theme_bgColour = '#E6E6E6';
+							theme_textColour = '#1A1A1A';
+							theme_accentColour = '#8C8C8C';
+						}
+						break;
 					}
 
 					if (imgUrl == null) throw new Error('Album art URL not found');

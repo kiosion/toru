@@ -7,7 +7,7 @@
     "start": "ts-node index.ts",
     "dev": "npx nodemon index.ts"
   },
-  "author": "",
+  "author": "kiosion",
   "license": "ISC",
   "devDependencies": {
     "@tsconfig/node16": "^1.0.2",
