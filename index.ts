@@ -86,7 +86,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 				break;
 				default: {
 					const imgUrl: string = data.recenttracks.track[0].image[3]['#text'];
-
+					const imgBlur: boolean = req.query['bgblur']?.toString() == 'true';
 					const bRadius: number = parseInt(req.query.borderRadius?.toString() || '20');
 					const aRadius: number = parseInt(req.query.coverRadius?.toString() || '16');
 					const theme: string = req.query.theme?.toString() || 'light';
@@ -138,7 +138,9 @@ app.get('/api/v1/(*)/?', (req, res) => {
 						.then((response: imgRes) => {
 							img.process({
 								image: response.image,
+								buffer: response.buffer,
 								mimetype: response.mimetype,
+								bgBlur: imgBlur,
 								isPaused: false,
 								bRadius: bRadius,
 								aRadius: aRadius,
