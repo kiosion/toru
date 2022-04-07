@@ -85,8 +85,31 @@ app.get('/api/v1/(*)/?', (req, res) => {
 				}
 				break;
 				default: {
-					const imgUrl: string = data.recenttracks.track[0].image[2]['#text'];
-					const imgBlur: boolean = req.query['bgblur']?.toString() == 'true';
+					let imgUrl: string = '';
+					// Terrible solution because last.fm doesn't have Stromae's album art for SOME REASON WHYYY
+					switch (data.recenttracks.track[0].album['#text']) {
+						case 'L’enfer': {
+							imgUrl = 'https://cdn.kio.dev/file/lenfer.jpg';
+							break;
+						}
+						case 'Santé':{
+							imgUrl = 'https://cdn.kio.dev/file/sante.jpg';
+							break;
+						}
+						case 'Multitude': {
+							imgUrl = 'https://cdn.kio.dev/file/multitude.jpg';
+							break;
+						}
+						case 'Racine carrée (Standard US Version)': {
+							imgUrl = 'https://cdn.kio.dev/file/racinecarree.jpg';
+							break;
+						}
+						default:{
+							imgUrl = data.recenttracks.track[0].image[2]['#text']
+							break;
+						}
+					}
+					//const imgBlur: boolean = req.query['bgblur']?.toString() == 'true';
 					const bRadius: number = parseInt(req.query.borderRadius?.toString() || '20');
 					const aRadius: number = parseInt(req.query.coverRadius?.toString() || '16');
 					const theme: string = req.query.theme?.toString() || 'light';
@@ -140,7 +163,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 								image: response.image,
 								buffer: response.buffer,
 								mimetype: response.mimetype,
-								bgBlur: imgBlur,
+								bgBlur: false,
 								isPaused: false,
 								bRadius: bRadius,
 								aRadius: aRadius,
