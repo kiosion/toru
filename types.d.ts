@@ -1,5 +1,4 @@
 interface procOptions {
-	image: string;
 	buffer: Buffer;
 	mimetype: string;
 	isPaused: boolean;
@@ -13,7 +12,6 @@ interface procOptions {
 	tr_album: string;
 }
 interface imgRes {
-	image: string;
 	buffer: Buffer;
 	mimetype: string;
 }
