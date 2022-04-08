@@ -16,7 +16,7 @@ Simply add the following snippet to your Github profile readme (or anywhere else
 Toru has a few parameters you can customize through URL query strings:
 
 #### Theme
-The theme can be specified using `?theme=<theme>`. Available themes are:
+The theme can be specified using `?theme=<theme:string>`. Available themes are:
 - light
 - dark
 - shoji
@@ -25,10 +25,13 @@ The theme can be specified using `?theme=<theme>`. Available themes are:
 - solarized
 
 #### Border radius
-The border radius of the ember can be specified using `?borderRadius=<number>`
+The border radius of the embed can be specified using `?borderRadius=<radius:int>`
 
-#### Cover Radius
-The border radius of the album art can be specified using `?coverRadius=<number>`
+#### Cover radius
+The border radius of the album art can be specified using `?coverRadius=<radius:int>`
+
+#### Response type
+There are three response types: 'cover' for the cover art resource, 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified using `?res=<type:string>`
 
 ## Contribute ✍️
 If you're knowledgeable with Node.js, Express.js, Typescript, or working on similar projects, feel free to contribute!
