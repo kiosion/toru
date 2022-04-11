@@ -33,5 +33,13 @@ The border radius of the album art can be specified using `?coverRadius=<radius:
 #### Response type
 There are three response types: 'cover' for the cover art resource, 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified using `?res=<type:string>`
 
+## Building 🔨
+
+- `npm i` to install all dependancies and dev tools
+- Create a .env file in the root directory, and provide a last.fm API key + secret
+- Then:
+	- `npm run dev` if building for development
+	- `rpm run build`, then `npm run serve` if building for production
+
 ## Contribute ✍️
 If you're knowledgeable with Node.js, Express.js, Typescript, or working on similar projects, feel free to contribute!
