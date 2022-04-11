@@ -1,19 +1,25 @@
-interface procOptions {
-	buffer: Buffer;
-	mimetype: string;
+interface svgOptions {
+	image: imgObj;
 	isPaused: boolean;
 	bRadius: number;
 	aRadius: number;
-	bgColour: string;
-	textColour: string;
-	accentColour: string;
-	tr_title: string;
-	tr_artist: string;
-	tr_album: string;
+	theme: svgTheme;
+	text: svgText;
 }
-interface imgRes {
+interface imgObj {
 	buffer: Buffer;
 	mimetype: string;
 }
 
-export { procOptions, imgRes };
+interface svgTheme {
+	bgColour: string;
+	textColour: string; 
+	accentColour: string;
+}
+interface svgText {
+	artist: string;
+	album: string;
+	title: string;
+}
+
+export { svgOptions, imgObj, svgTheme, svgText };

@@ -1,11 +1,10 @@
 import sharp from 'sharp';
 import fetch from 'node-fetch';
 
-// import * as defaults from '../lib/constants';
-import { procOptions, imgRes } from '../types.d';
+import { svgOptions, imgObj, svgText } from '../types.d';
 
 module img {
-	export const fetchImg = (url: string): Promise<imgRes> => new Promise (async (resolve, reject) => {
+	export const get = (url: string): Promise<imgObj> => new Promise (async (resolve, reject) => {
         const response = await fetch(url);
 		const arrayBuffer = await response.arrayBuffer();
 		const buffer = Buffer.from(arrayBuffer);
@@ -13,13 +12,12 @@ module img {
 		resolve({buffer, mimetype});
     });
 
-	const htmlEncode = (str: string): string => {
-		return str
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#39;');
+	const htmlEncode = (text: svgText): svgText => {
+		let { artist, album, title } = text;
+		artist = artist.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		album = album.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		title = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		return { artist, album, title };
 	}
 
 	const compImg = (image: Buffer): Promise<string> => new Promise ((resolve, reject) => {
@@ -33,22 +31,22 @@ module img {
 				},
 			])
 			.toBuffer()
-			.then((buffer) => {
+			.then((buffer: Buffer) => {
 				resolve(buffer.toString('base64'));
 			})
-			.catch((err) => {
+			.catch((err:any ) => {
 				reject(err);
 			});
 	});
 
-	export const process = (options: procOptions): Promise<string> => new Promise ((resolve, reject) => {
+	export const process = (options: svgOptions): Promise<string> => new Promise ((resolve, reject) => {
 		// Get args from array
-		const { buffer, mimetype, isPaused, bRadius, aRadius, bgColour, textColour, accentColour, tr_title, tr_artist, tr_album } = options;
+		const { image, isPaused, bRadius, aRadius, theme, text } = options;
+		const { buffer, mimetype } = image;
+		const { bgColour, textColour, accentColour } = theme;
+		const { artist, album, title } = htmlEncode(text);
 		const width: number = 412;
 		const height: number = 128;
-		const tr_title_enc = htmlEncode(tr_title);
-		const tr_artist_enc = htmlEncode(tr_artist);
-		const tr_album_enc = htmlEncode(tr_album);
 
 		if (isPaused) {
 			// Composite image with pause overlay
@@ -72,15 +70,15 @@ module img {
 										<img src="data:${mimetype};base64,${image}" alt="Cover art" style="border: 1.6px solid ${accentColour}; border-radius:${aRadius}px" width="100px" height="100px" />
 									</div>
 									<div style="display:flex; flex-direction:column; padding-left:14px;">
-										<span style="font-size: 20px; font-weight: bold; padding-bottom: 6px; border-bottom: 1.6px solid ${accentColour};">${tr_title_enc}</span>
-										<span style="font-size:16px; font-weight:normal; margin-top:4px;">${tr_artist_enc} - ${tr_album_enc}</span>
+										<span style="font-size: 20px; font-weight: bold; padding-bottom: 6px; border-bottom: 1.6px solid ${accentColour};">${title}</span>
+										<span style="font-size:16px; font-weight:normal; margin-top:4px;">${artist} - ${album}</span>
 									</div>
 								</div>
 							</foreignObject>
 						</svg>
 					`);
 				})
-				.catch((err) => {
+				.catch((err: any) => {
 					reject(err);
 				});
 		}
@@ -103,8 +101,8 @@ module img {
 								<img src="data:${mimetype};base64,${buffer.toString('base64')}" alt="Cover art" style="border: 1.6px solid ${accentColour}; border-radius:${aRadius}px" width="100px" height="100px" />
 							</div>
 							<div style="display:flex; flex-direction:column; padding-left:14px;">
-								<span style="font-size: 20px; font-weight: bold; padding-bottom: 6px; border-bottom: 1.6px solid ${accentColour};">${tr_title_enc}</span>
-								<span style="font-size:16px; font-weight:normal; margin-top:4px;">${tr_artist_enc} - ${tr_album_enc}</span>
+								<span style="font-size: 20px; font-weight: bold; padding-bottom: 6px; border-bottom: 1.6px solid ${accentColour};">${title}</span>
+								<span style="font-size:16px; font-weight:normal; margin-top:4px;">${artist} - ${album}</span>
 							</div>
 						</div>
 					</foreignObject>

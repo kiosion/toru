@@ -1,20 +1,19 @@
+import { imgObj, svgTheme, svgText } from './types.d';
 import express from 'express';
 import fetch from 'node-fetch';
+import lfm from './lib/lfm';
+import img from './lib/img';
+import get from './lib/get';
 
 const app = express();
 
-import { imgRes } from './types.d';
-
-import lfm from './lib/lfm';
-import img from './lib/img';
-
-// Root route routes
+// Root route routes ?!
 app.get('/', (req, res) => {
 	res.send('Shoo! Nothing to see here');
 });
 app.get('/api(/)?', (req, res) => {
 	res.send('Shoo! Nothing to see here');
-})
+});
 
 // API routes
 app.get('/api/v1/(*)/?', (req, res) => {
@@ -27,10 +26,12 @@ app.get('/api/v1/(*)/?', (req, res) => {
 	const start = new Date().getTime();
 	const uname: string = req.url.split('/')[3].split('?')[0];
 
+	// Get res from LFM
 	lfm.getJson(uname)
 		.then((data: any) => {
 			console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
 			switch (req.query['res']) {
+				// Case for album cover resource
 				case 'cover': {
 					try {
 						let url: string = data.recenttracks.track[0].image[3]['#text'];
@@ -48,99 +49,42 @@ app.get('/api/v1/(*)/?', (req, res) => {
 					}
 					break;
 				}
+				// Case for JSON res
 				case 'json': {
 					res.send('<pre>' + JSON.stringify(data, null, 4) + '</pre>');
 					break;
 				}
+				// Case for default embed
 				case 'embed':
 				default: {
-					// isPaused false for now until it doesn't look shitty :)
-					const isPaused: boolean = (data.recenttracks.track[0]['@attr'] == null) ? false : false;
-					const bRadius: number = parseInt(req.query.borderRadius?.toString() || '20');
-					const aRadius: number = parseInt(req.query.coverRadius?.toString() || '16');
-					const theme: string = req.query.theme?.toString() || 'light';
-					let imgUrl: string; let theme_bgColour: string; let theme_textColour: string; let theme_accentColour: string;
-
+					// Check LFM returned album text & art url
 					if (typeof data.recenttracks.track[0].album['#text'] == 'undefined') throw new Error('Album name not found');
 					if (typeof data.recenttracks.track[0].image[2]['#text'] == 'undefined') throw new Error('Album cover URL not found');
 					
-					// last.fm doesn't have Stromae's album art for SOME REASON WHYYY
-					switch (data.recenttracks.track[0].album['#text']) {
-						case 'L’enfer':
-							imgUrl = 'https://cdn.kio.dev/file/lenfer.jpg';
-							break;
-						case 'Santé':
-							imgUrl = 'https://cdn.kio.dev/file/sante.jpg';
-							break;
-						case 'Multitude':
-							imgUrl = 'https://cdn.kio.dev/file/multitude.jpg';
-							break;
-						case 'Racine carrée (Standard US Version)':
-							imgUrl = 'https://cdn.kio.dev/file/racinecarree.jpg';
-							break;
-						default:
-							imgUrl = data.recenttracks.track[0].image[2]['#text']
-							break;
-					}
-					
-					// Set theme colours
-					switch (theme) {
-						case 'nord':
-							theme_bgColour = '#2E3440';
-							theme_textColour = '#ECEFF4';
-							theme_accentColour = '#81A1C1';
-							break;
-						case 'dracula':
-							theme_bgColour = '#282A36';
-							theme_textColour = '#F8F8F2';
-							theme_accentColour = '#6272A4';
-							break;
-						case 'solarized':
-							theme_bgColour = '#FDF6E3';
-							theme_textColour = '#657B83';
-							theme_accentColour = '#839496';
-							break;
-						case 'shoji':
-							theme_bgColour = '#E8E8E3';
-							theme_textColour = '#4D4D4D';
-							theme_accentColour = '#4D4D4D';
-							break;
-						case 'dark':
-							theme_bgColour = '#1A1A1A';
-							theme_textColour = '#E6E6E6';
-							theme_accentColour = '#CCCCCC';
-							break;
-						case 'light':
-						default:
-							theme_bgColour = '#F2F2F2';
-							theme_textColour = '#1A1A1A';
-							theme_accentColour = '#8C8C8C';
-							break;
-					}
+					// Set some consts
+					const bRadius: number = parseInt(req.query.borderRadius?.toString() || '20');
+					const aRadius: number = parseInt(req.query.coverRadius?.toString() || '16');
+					const coverUrl = get.art(data.recenttracks.track[0].album['#text'], data.recenttracks.track[0].image[2]['#text']);
+					const svgTheme: svgTheme = get.theme(req.query.theme?.toString() || 'light');
+					const svgText: svgText = { artist: data.recenttracks.track[0].artist['#text'], album: data.recenttracks.track[0].album['#text'], title: data.recenttracks.track[0].name};
 
 					// fetch and process image
-					img.fetchImg(imgUrl)
-						.then((response: imgRes) => {
+					img.get(coverUrl)
+						.then((response: imgObj) => {
 							img.process({
-								buffer: response.buffer,
-								mimetype: response.mimetype,
-								isPaused: isPaused,
+								image: response,
+								isPaused: false,
 								bRadius: bRadius,
 								aRadius: aRadius,
-								bgColour: theme_bgColour,
-								textColour: theme_textColour,
-								accentColour: theme_accentColour,
-								tr_title: data.recenttracks.track[0].name,
-								tr_artist: data.recenttracks.track[0].artist['#text'],
-								tr_album: data.recenttracks.track[0].album['#text'],
+								theme: svgTheme,
+								text: svgText,
 							})
-								// return svg
-								.then((procObj) => {
+								.then((svg) => {
 									res.format({
 										'image/svg+xml': () => {
 											res.set('Age', '0');
 											res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-											res.send(procObj);
+											res.send(svg);
 										}
 									});
 								});
