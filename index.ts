@@ -1,3 +1,4 @@
+// Imports
 import { imgObj, svgTheme, svgText } from './types.d';
 import express from 'express';
 import fetch from 'node-fetch';

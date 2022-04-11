@@ -1,5 +1,6 @@
 # node
 /node_modules
+/dist
 
 # mac os shit
 .DS_STORE
