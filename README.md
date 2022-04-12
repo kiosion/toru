@@ -39,7 +39,7 @@ There are three response types: 'cover' for the cover art resource, 'json' for t
 - Create an .env file in the root directory, and provide a last.fm API key + secret
 - Then:
 	- `npm run dev` if building for development
-	- `rpm run build`, then `npm run serve` if building for production. JS files are stored in ./dist
+	- `npm run build`, then `npm run serve` if building for production. JS files are stored in ./dist
 
 ## Contribute ✍️
 If you're knowledgeable with Node.js, Express.js, Typescript, or working on similar projects, feel free to contribute!
