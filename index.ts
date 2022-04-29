@@ -32,6 +32,15 @@ app.get('/api/v1/(*)/?', (req, res) => {
 		.then((data: any) => {
 			console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
 			switch (req.query['res']) {
+				// Case for JSON res
+				case 'json': {
+					// Return most recent item from 'tracks' array, with headers set
+					res.set('Content-Type', 'application/json');
+					res.set('Age', '0');
+					res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+					res.send(JSON.stringify(data.recenttracks.track[0], null, 4));
+					break;
+				}
 				// Case for album cover resource
 				case 'cover': {
 					try {
@@ -48,11 +57,6 @@ app.get('/api/v1/(*)/?', (req, res) => {
 					catch (error) {
 						res.status(500).send('' + error);
 					}
-					break;
-				}
-				// Case for JSON res
-				case 'json': {
-					res.send('<pre>' + JSON.stringify(data, null, 4) + '</pre>');
 					break;
 				}
 				// Case for default embed
