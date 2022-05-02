@@ -5,9 +5,9 @@
 
 ## Demos 🚧
 
-[![Currently listening](https://toru.kio.dev/api/v1/kiosion/?theme=dark)](https://last.fm/user/kiosion)
+[![Last.fm Activity - Dark theme](https://toru.kio.dev/api/v1/kiosion/?theme=dark)](https://last.fm/user/kiosion)
 
-[![Currently listening](https://toru.kio.dev/api/v1/kiosion/?theme=light)](https://last.fm/user/kiosion)
+[![Last.fm Activity - Light theme](https://toru.kio.dev/api/v1/kiosion/?theme=light)](https://last.fm/user/kiosion)
 
 ## Usage 🔧
 
@@ -22,7 +22,7 @@ Toru has a few parameters you can customize through URL query strings:
 
 #### Theme
 
-The theme can be specified using `?theme=<theme:string>`. Available themes are:
+The theme can be specified by appending `?theme=<theme>`. Available themes are:
 - dark/light (both shown above)
 - shoji
 - dracula
@@ -31,23 +31,24 @@ The theme can be specified using `?theme=<theme:string>`. Available themes are:
 
 #### Border radius
 
-The border radius of the embed can be specified using `?borderRadius=<radius:int>`
+The border radius of the embed can be specified as an integer by appending `?borderRadius=<radius>`
 
 #### Cover radius
 
-The border radius of the album art can be specified using `?coverRadius=<radius:int>`
+The border radius of the album art can be specified as an integer by appending `?coverRadius=<radius>`
 
 #### Response type
 
-There are three response types: 'cover' for the cover art resource, 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified using `?res=<type:string>`
+There are three response types: 'cover' for the cover art resource, 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string by appending `?res=<type>`
 
 ## Building 🔨
 
 - `npm i` to install all dependancies and dev tools
 - Create an .env file in the root directory, and provide a last.fm API key + secret
 - Then:
-	- `npm run dev` if building for development
-	- `npm run build`, then `npm run serve` if building for production. JS files are stored in ./dist
+	- `npm run dev` to build + run for development
+	- `npm run build`, then `npm run serve` if building for production
+- Built JS files are saved to ./dist, and the app is served at localhost:3000
 
 ## Contribute ✍️
 If you're knowledgeable with Node.js, Express.js, Typescript, or working on similar projects, feel free to contribute!
