@@ -1,10 +1,10 @@
 interface svgOptions {
 	image: imgObj;
-	isPaused: boolean;
 	bRadius: number;
 	aRadius: number;
 	theme: svgTheme;
 	text: svgText;
+	svgUrl: URL | string | null;
 }
 interface imgObj {
 	buffer: Buffer;

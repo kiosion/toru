@@ -72,17 +72,19 @@ app.get('/api/v1/(*)/?', (req, res) => {
 					const coverUrl = get.art(data.recenttracks.track[0].album['#text'], data.recenttracks.track[0].image[2]['#text']);
 					const svgTheme: svgTheme = get.theme(req.query.theme?.toString() || 'light');
 					const svgText: svgText = { artist: data.recenttracks.track[0].artist['#text'], album: data.recenttracks.track[0].album['#text'], title: data.recenttracks.track[0].name};
+					let svgUrl: URL | string | null = req.query.url?.toString() || null;
+					if (svgUrl) try { svgUrl = new URL(svgUrl); } catch { svgUrl = null; }
 
-					// fetch and process image
+					// Fetch and process image
 					img.get(coverUrl)
 						.then((response: imgObj) => {
 							img.process({
 								image: response,
-								isPaused: false,
 								bRadius: bRadius,
 								aRadius: aRadius,
 								theme: svgTheme,
 								text: svgText,
+								svgUrl: svgUrl
 							})
 								.then((svg) => {
 									res.format({
