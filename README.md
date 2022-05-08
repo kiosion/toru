@@ -39,7 +39,11 @@ The border radius of the album art can be specified as an integer by appending `
 
 #### Response type
 
-There are three response types: 'cover' for the cover art resource, 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string by appending `?res=<type>`
+There are two response types: 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string by appending `?res=<type>`
+
+#### Custom SVG asset
+
+You can use a custom SVG asset by appending `?svg=<url>`. Toru will fill in the artist name, track title, album title, and cover art resource as a b64 string.
 
 ## Building 🔨
 
