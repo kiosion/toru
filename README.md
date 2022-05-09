@@ -18,11 +18,11 @@ Simply add the following snippet to your Github profile readme (or anywhere else
 
 ## Options ⚙️
 
-Toru has a few parameters you can customize through URL query strings:
+Toru has a few parameters you can customize through URL query strings (`?` for first param, `&` for following params):
 
 #### Theme
 
-The theme can be specified by appending `?theme=<theme>`. Available themes are:
+The theme can be specified using `theme=<theme>`. Available themes are:
 - dark/light (both shown above)
 - shoji
 - dracula
@@ -31,19 +31,23 @@ The theme can be specified by appending `?theme=<theme>`. Available themes are:
 
 #### Border radius
 
-The border radius of the embed can be specified as an integer by appending `?borderRadius=<radius>`
+The border radius of the embed can be specified as an integer using `borderRadius=<radius>`
 
 #### Cover radius
 
-The border radius of the album art can be specified as an integer by appending `?coverRadius=<radius>`
+The border radius of the album art can be specified as an integer using `coverRadius=<radius>`
 
 #### Response type
 
-There are two response types: 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string by appending `?res=<type>`
+There are two response types: 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string using `res=<type>`
 
 #### Custom SVG asset
 
-You can use a custom SVG asset by appending `?svg=<url>`. Toru will fill in the artist name, track title, album title, and cover art resource as a b64 string.
+You can alternativly specify a custom SVG asset using `svg=<url>`. Toru will fill in the artist name, track title, album title, and cover art resource using the following template strings:
+- Cover art -> `${image}` (should be the 'src' attr, as it's a b64-encoded image string)
+- Artist -> `${artist}`
+- Album -> `${album}`
+- Track -> `${title}`
 
 ## Building 🔨
 
