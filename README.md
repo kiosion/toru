@@ -5,15 +5,18 @@
 
 ## Demos 🚧
 
-[![Last.fm Activity - Dark theme](https://toru.kio.dev/api/v1/kiosion/?theme=dark)](https://last.fm/user/kiosion)
-
-[![Last.fm Activity - Light theme](https://toru.kio.dev/api/v1/kiosion/?theme=light)](https://last.fm/user/kiosion)
+<div align="center">
+  <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=dark" alt="Last.fm Activity" width="380px" /></a>
+  <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=light" alt="Last.fm Activity" width="380px" /></a>
+  <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=shoji" alt="Last.fm Activity" width="380px" /></a>
+  <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=nord" alt="Last.fm Activity" width="380px" /></a>
+</div>
 
 ## Usage 🔧
 
 Simply add the following snippet to your Github profile readme (or anywhere else you'd like to embed your last.fm activity):
 ```
-[![Last.fm Activity](https://toru.kio.dev/api/v1/<your_lfm_username>/)](https://last.fm/user/<your_lfm_username>)
+<img src="https://toru.kio.dev/api/v1/{your_lfm_username}" alt="Last.fm Activity" />
 ```
 
 ## Options ⚙️
@@ -23,7 +26,7 @@ Toru has a few parameters you can customize through URL query strings (`?` for f
 #### Theme
 
 The theme can be specified using `theme=<theme>`. Available themes are:
-- dark/light (both shown above)
+- dark/light
 - shoji
 - dracula
 - nord
