@@ -1,0 +1,9 @@
+const DEFAULT_BORDER_RADIUS: string = '20';
+const DEFAULT_COVER__RADIUS: string = '16';
+const DEFAULT_SVG_THEME: string = 'light';
+
+export {
+  DEFAULT_BORDER_RADIUS,
+  DEFAULT_COVER__RADIUS,
+  DEFAULT_SVG_THEME
+};

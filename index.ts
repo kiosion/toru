@@ -1,114 +1,123 @@
-// Imports
-import { imgObj, svgTheme, svgText } from './types.d';
+import 'module-alias/register';
 import express from 'express';
 import fetch from 'node-fetch';
-import lfm from './lib/lfm';
-import img from './lib/img';
-import get from './lib/get';
+import {
+  img,
+  get,
+  lfm
+} from '@libs';
+import {
+  DEFAULT_BORDER_RADIUS,
+  DEFAULT_COVER__RADIUS,
+  DEFAULT_SVG_THEME
+} from '@consts';
+import {
+  imgObj,
+  svgTheme,
+  svgText
+} from './types.d';
 
 const app = express();
 
-// Root route routes ?!
-app.get('/', (req, res) => {
-	res.send('Shoo! Nothing to see here');
-});
-app.get('/api(/)?', (req, res) => {
-	res.send('Shoo! Nothing to see here');
-});
-
 // API routes
 app.get('/api/v1/(*)/?', (req, res) => {
-	// Check username is provided
-	if ((req.url.split('/')[3].split('/?')[0]) == null || (req.url.split('/')[3].split('/?')[0]) == '') {
-		res.status(404).send('Username not provided!');
-		return;
-	}
+  if ((req.url.split('/')[3].split('/?')[0]) == null || (req.url.split('/')[3].split('/?')[0]) == '') {
+    res.status(404).send(
+      `<center style="font-family: 'Century Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;"><h1>Error</h1><p>Username not provided</p></center>`
+    );
+    return;
+  }
 
-	const start = new Date().getTime();
-	const uname: string = req.url.split('/')[3].split('?')[0];
+  const start = new Date().getTime();
+  const uname: string = req.url.split('/')[3].split('?')[0];
 
-	// Get res from LFM
-	lfm.getJson(uname)
-		.then((data: any) => {
-			console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
-			switch (req.query['res']) {
-				// Case for JSON res
-				case 'json': {
-					// Return most recent item from 'tracks' array, with headers set
-					res.set('Content-Type', 'application/json');
-					res.set('Age', '0');
-					res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-					res.send(JSON.stringify(data.recenttracks.track[0], null, 4));
-					break;
-				}
-				// Case for album cover resource
-				case 'cover': {
-					try {
-						let url: string = data.recenttracks.track[0].image[3]['#text'];
-						if (url == null) throw new Error('Album art URL not found');
-						fetch(url)
-							.then((actual) => {
-								actual.headers.forEach((v, n) => res.setHeader(n, v));
-								res.set('Age', '0');
-								res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-								actual.body?.pipe(res);
-							});
-					} 
-					catch (error) {
-						res.status(500).send('' + error);
-					}
-					break;
-				}
-				// Case for default embed
-				case 'embed':
-				default: {
-					// Check LFM returned album text & art url
-					if (typeof data.recenttracks.track[0].album['#text'] == 'undefined') throw new Error('Album name not found');
-					if (typeof data.recenttracks.track[0].image[2]['#text'] == 'undefined') throw new Error('Album cover URL not found');
-					
-					// Set some consts
-					const bRadius: number = parseInt(req.query.borderRadius?.toString() || '20');
-					const aRadius: number = parseInt(req.query.coverRadius?.toString() || '16');
-					const coverUrl = get.art(data.recenttracks.track[0].album['#text'], data.recenttracks.track[0].image[2]['#text']);
-					const svgTheme: svgTheme = get.theme(req.query.theme?.toString() || 'light');
-					const svgText: svgText = { artist: data.recenttracks.track[0].artist['#text'], album: data.recenttracks.track[0].album['#text'], title: data.recenttracks.track[0].name};
-					let svgUrl: URL | string | null = req.query.url?.toString() || null;
-					if (svgUrl) try { svgUrl = new URL(svgUrl); } catch { svgUrl = null; }
+  lfm.getJson(uname)
+    .then((data: any) => {
+      console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
+      switch (req.query['res']) {
+        case 'json': {
+          // Return most recent item from 'tracks' array, with headers set
+          res.set('Content-Type', 'application/json');
+          res.set('Age', '0');
+          res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+          res.send(JSON.stringify(data.recenttracks.track[0], null, 4));
+          break;
+        }
+        case 'cover': {
+          try {
+            let url: string = data.recenttracks.track[0].image[3]['#text'];
+            if (url == null) throw new Error('Cover art URL not found');
+            fetch(url)
+              .then((actual) => {
+                actual.headers.forEach((v, n) => res.setHeader(n, v));
+                res.set('Age', '0');
+                res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+                actual.body?.pipe(res);
+              });
+          } 
+          catch (e: any) {
+            res.status(500).send('' + e);
+          }
+          break;
+        }
+        case 'embed':
+        default: {
+          if (typeof data.recenttracks.track[0].album['#text'] == 'undefined') throw new Error('Album name not found');
+          if (typeof data.recenttracks.track[0].image[2]['#text'] == 'undefined') throw new Error('Cover art URL not found');
 
-					// Fetch and process image
-					img.get(coverUrl)
-						.then((response: imgObj) => {
-							img.process({
-								image: response,
-								bRadius: bRadius,
-								aRadius: aRadius,
-								theme: svgTheme,
-								text: svgText,
-								svgUrl: svgUrl
-							})
-								.then((svg) => {
-									res.format({
-										'image/svg+xml': () => {
-											res.set('Age', '0');
-											res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-											res.send(svg);
-										}
-									});
-								});
-						})
-						.catch((error) => {
-							res.status(500).send('' + error);
-						});
-				}
-				break;
-			}
-		})
-		.catch((error) => {
-			res.status(500).send('' + error);
-		});
+          const bRadius: number = parseInt(req.query?.borderRadius?.toString() || DEFAULT_BORDER_RADIUS);
+          const aRadius: number = parseInt(req.query?.coverRadius?.toString() || DEFAULT_COVER__RADIUS);
+          const coverUrl = get.art(
+            data.recenttracks.track[0].album['#text'],
+            data.recenttracks.track[0].image[2]['#text']
+          );
+          const svgTheme: svgTheme = get.theme(req.query.theme?.toString() || DEFAULT_SVG_THEME);
+          const svgText: svgText = {
+            artist: data.recenttracks.track[0].artist['#text'],
+            album: data.recenttracks.track[0].album['#text'],
+            title: data.recenttracks.track[0].name
+          };
+          let svgUrl: URL | string | null = req.query.url?.toString() || null;
+          if (svgUrl) try { svgUrl = new URL(svgUrl); } catch { svgUrl = null; }
+
+          img.get(coverUrl)
+            .then((response: imgObj) => {
+              img.process({
+                image: response,
+                bRadius: bRadius,
+                aRadius: aRadius,
+                theme: svgTheme,
+                text: svgText,
+                svgUrl: svgUrl
+              })
+                .then((svg: string) => {
+                  res.format({
+                    'image/svg+xml': () => {
+                      res.set('Age', '0');
+                      res.set('Cache-Control', 'public, max-age=0, must-revalidate');
+                      res.send(svg);
+                    }
+                  });
+                });
+            })
+            .catch((e: any) => {
+              res.status(500).send('' + e);
+            });
+        }
+        break;
+      }
+    })
+    .catch((e: any) => {
+      res.status(500).send('' + e);
+    });
 });
 
-// Listen on port 3000
+app.get('/*', (req, res) => {
+  res.send(
+    `<center style="font-family: 'Century Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;"><h1>Error</h1><p>Cannot GET ${req.url}</p></center>`
+  );
+});
+
 app.listen(3000, () => {
-	console.log('Server is listening on port 3000');
+  console.log('Server is running on port 3000');
 });

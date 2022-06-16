@@ -1,25 +1,25 @@
 interface svgOptions {
-	image: imgObj;
-	bRadius: number;
-	aRadius: number;
-	theme: svgTheme;
-	text: svgText;
-	svgUrl: URL | string | null;
+  image: imgObj;
+  bRadius: number;
+  aRadius: number;
+  theme: svgTheme;
+  text: svgText;
+  svgUrl: URL | string | null;
 }
 interface imgObj {
-	buffer: Buffer;
-	mimetype: string;
+  buffer: Buffer;
+  mimetype: string;
 }
 
 interface svgTheme {
-	bgColour: string;
-	textColour: string; 
-	accentColour: string;
+  bgColour: string;
+  textColour: string; 
+  accentColour: string;
 }
 interface svgText {
-	artist: string;
-	album: string;
-	title: string;
+  artist: string;
+  album: string;
+  title: string;
 }
 
 export { svgOptions, imgObj, svgTheme, svgText };
