@@ -46,7 +46,7 @@ There are two response types: 'json' for the raw JSON response, or 'embed' / uns
 
 #### Custom SVG asset
 
-You can alternativly specify a custom SVG asset using `svg=<url>`. Toru will fill in the artist name, track title, album title, and cover art resource using the following template strings:
+You can alternativly specify a custom SVG asset using `url=<svg url>`. Toru will fill in the artist name, track title, album title, and cover art resource using the following template strings:
 - Cover art -> `${image}` (should be the 'src' attr, as it's a b64-encoded image string)
 - Artist -> `${artist}`
 - Album -> `${album}`
