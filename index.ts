@@ -15,11 +15,10 @@ import {
   imgObj,
   svgTheme,
   svgText
-} from './types.d';
+} from '@types';
 
 const app = express();
 
-// API routes
 app.get('/api/v1/(*)/?', (req, res) => {
   if ((req.url.split('/')[3].split('/?')[0]) == null || (req.url.split('/')[3].split('/?')[0]) == '') {
     res.status(404).send(
@@ -36,7 +35,6 @@ app.get('/api/v1/(*)/?', (req, res) => {
       console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
       switch (req.query['res']) {
         case 'json': {
-          // Return most recent item from 'tracks' array, with headers set
           res.set('Content-Type', 'application/json');
           res.set('Age', '0');
           res.set('Cache-Control', 'public, max-age=0, must-revalidate');
@@ -114,7 +112,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 
 app.get('/*', (req, res) => {
   res.send(
-    `<center style="font-family: 'Century Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;"><h1>Error</h1><p>Cannot GET ${req.url}</p></center>`
+    `<center style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><h1>Error</h1><p>Cannot GET ${req.url}</p></center>`
   );
 });
 

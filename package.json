@@ -30,6 +30,7 @@
   },
   "_moduleAliases": {
     "@consts": "./dist/lib/consts",
-    "@libs": "./dist/lib/index"
+    "@libs": "./dist/lib/index",
+    "@types": "./types.d"
   }
 }

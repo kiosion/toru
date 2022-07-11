@@ -1,4 +1,4 @@
-import { svgTheme } from '../types';
+import { svgTheme } from '@types';
 
 module get {
   export const art = (album: string, url: string): string => {

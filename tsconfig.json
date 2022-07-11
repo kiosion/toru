@@ -30,7 +30,8 @@
     "baseUrl": "./",
     "paths": {
       "@consts": ["lib/consts"],
-      "@libs": ["lib/index"]
+      "@libs": ["lib/index"],
+      "@types": ["types.d"]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     // "typeRoots": [],                                  /* Specify multiple folders that act like `./node_modules/@types`. */
