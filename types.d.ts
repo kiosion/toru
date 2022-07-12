@@ -5,6 +5,7 @@ interface svgOptions {
   theme: svgTheme;
   text: svgText;
   svgUrl: URL | string | null;
+  isPlaying: boolean;
 }
 interface imgObj {
   buffer: Buffer;

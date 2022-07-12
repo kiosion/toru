@@ -77,6 +77,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
           };
           let svgUrl: URL | string | null = req.query.url?.toString() || null;
           if (svgUrl) try { svgUrl = new URL(svgUrl); } catch { svgUrl = null; }
+          const isPlaying: boolean = data.recenttracks.track?.[0]?.['@attr']?.nowplaying === 'true';
 
           img.get(coverUrl)
             .then((response: imgObj) => {
@@ -86,7 +87,8 @@ app.get('/api/v1/(*)/?', (req, res) => {
                 aRadius: aRadius,
                 theme: svgTheme,
                 text: svgText,
-                svgUrl: svgUrl
+                svgUrl: svgUrl,
+                isPlaying
               })
                 .then((svg: string) => {
                   res.format({
