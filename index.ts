@@ -21,9 +21,10 @@ const app = express();
 
 app.get('/api/v1/(*)/?', (req, res) => {
   if ((req.url.split('/')[3].split('/?')[0]) == null || (req.url.split('/')[3].split('/?')[0]) == '') {
-    res.status(404).send(
-      `<center style="font-family: 'Century Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;"><h1>Error</h1><p>Username not provided</p></center>`
-    );
+    res.status(400).send(JSON.stringify({
+      error: 'Invalid username provided',
+      code: 400
+    }));
     return;
   }
 
@@ -32,7 +33,7 @@ app.get('/api/v1/(*)/?', (req, res) => {
 
   lfm.getJson(uname)
     .then((data: any) => {
-      console.log('\t->lfm res took: ' + (new Date().getTime() - start) / 1000 + 's');
+      console.log('\t->lfm response took: ' + (new Date().getTime() - start) / 1000 + 's');
       switch (req.query['res']) {
         case 'json': {
           res.set('Content-Type', 'application/json');
@@ -54,7 +55,11 @@ app.get('/api/v1/(*)/?', (req, res) => {
               });
           } 
           catch (e: any) {
-            res.status(500).send('' + e);
+            res.setHeader('Content-type', 'application/json');
+            res.status(500).send(JSON.stringify({
+              error: e.message || e as string || 'Unknown error',
+              code: e.code ?? 500
+            }));
           }
           break;
         }
@@ -101,21 +106,31 @@ app.get('/api/v1/(*)/?', (req, res) => {
                 });
             })
             .catch((e: any) => {
-              res.status(500).send('' + e);
+              res.setHeader('Content-type', 'application/json');
+              res.status(500).send(JSON.stringify({
+                error: e.message || e as string || 'Unknown error',
+                code: e.code ?? 500
+              }));
             });
         }
         break;
       }
     })
     .catch((e: any) => {
-      res.status(500).send('' + e);
+      res.setHeader('Content-type', 'application/json');
+      res.status(500).send(JSON.stringify({
+        error: e.message ?? e as string,
+        code: e.code ?? 500
+      }));
     });
 });
 
 app.get('/*', (req, res) => {
-  res.send(
-    `<center style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><h1>Error</h1><p>Cannot GET ${req.url}</p></center>`
-  );
+  res.setHeader('Content-type', 'application/json');
+  res.status(403).send(JSON.stringify({
+      error: `Cannot GET ${req.url}`,
+      code: 403
+    }));
 });
 
 app.listen(3000, () => {
