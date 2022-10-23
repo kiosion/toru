@@ -1,10 +1,12 @@
-# node
-/node_modules
-/dist
-
-# mac os shit
-.DS_STORE
-
-# misc
-/out
-*.env
+/build
+/_build
+/cover
+/deps
+/doc
+/.fetch
+/tmp/
+**/.DS_STORE
+.env
+**/toru-*.tar
+erl_crash.dump
+/old
