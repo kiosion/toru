@@ -154,7 +154,7 @@ defmodule Toru.Router.Api.V1 do
 
   get "/:username" do
     params = fetch_query_params(conn).query_params
-    |> validate_query_params(%{"theme" => "light", "bRadius" => "22", "aRadius" => "16", "svgUrl" => nil})
+    |> validate_query_params(%{"theme" => "light", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil})
 
     case fetch_info(username) do
       {:ok, res} ->
@@ -177,15 +177,14 @@ defmodule Toru.Router.Api.V1 do
           _ -> "" # Eventually, set a fallback image hash here
         end
 
-        svg = case params["svgUrl"] do
+        svg = case params["svg_url"] do
           url when is_binary(url) ->
             with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
               body
               |> String.replace("${title}", recent_track["name"])
               |> String.replace("${artist}", recent_track["artist"]["#text"])
               |> String.replace("${album}", recent_track["album"]["#text"])
-              |> String.replace("${cover_art}", cover_art)
-              |> String.replace("${mime_type}", "image/jpeg")
+              |> String.replace("${cover_art}", "data:image/jpeg;base64,#{cover_art}")
             else
               _ -> nil
             end
@@ -202,8 +201,8 @@ defmodule Toru.Router.Api.V1 do
               :cover_art => cover_art,
               :mime_type => "image/jpeg",
               :theme => params["theme"],
-              :aRadius => params["aRadius"],
-              :bRadius => params["bRadius"]
+              :aRadius => params["album_radius"],
+              :bRadius => params["border_radius"]
             }
           )
         else
