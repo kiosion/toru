@@ -11,9 +11,8 @@ defmodule Mix.Tasks.Docker do
     {dir, _resp} = System.cmd("pwd", [])
 
     # Mount CWD as /opt/build within new elixir image
-    # Ex the /opt/build/bin/release script
     docker(
-      "run -v #{String.trim(dir)}:/opt/build --rm -i #{app_name()}:latest /opt/build/bin/release -m #{env}"
+      "run -v #{String.trim(dir)}:/opt/build --rm -i #{app_name()}:latest /opt/build/bin/release #{env}"
     )
   end
 

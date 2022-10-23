@@ -134,7 +134,7 @@ defmodule Toru.Router.Api.V1 do
     |> String.replace(~r{>\s+<}, "><")
   end
 
-  @spec fetch_info(String.t()) :: {:error, String.t()} | {:ok, map()}
+  @spec fetch_info(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
   def fetch_info(username) do
     url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_api_key}&format=json"
 
@@ -142,13 +142,13 @@ defmodule Toru.Router.Api.V1 do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         {:ok, body |> Poison.decode!() |> Map.get("recenttracks")}
       {:ok, %HTTPoison.Response{status_code: 404}} ->
-        {:error, "User not found"}
+        {:error, %{:code => 404, :reason => "User not found"}}
       {:ok, %HTTPoison.Response{status_code: 400}} ->
-        {:error, "Invalid username"}
+        {:error, %{:code => 400, :reason => "Invalid request"}}
       {:ok, _} ->
-        {:error, "Unknown response"}
+        {:error, %{:code => 500, :reason => "Unknown response"}}
       {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, reason}
+        {:error, %{:code => 500, :reason => reason}}
     end
   end
 
@@ -162,62 +162,97 @@ defmodule Toru.Router.Api.V1 do
         |> Map.get("track", [])
         |> List.first()
 
-        nowplaying = recent_track
-        |> Map.get("@attr")
-        |> Map.get("nowplaying", "false")
-
-        cover_art_url = recent_track
-        |> Map.get("image", [])
-        |> Enum.find(fn image -> image["size"] == "large" end)
-        |> Map.get("#text", "")
-
-        cover_art = with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(cover_art_url) do
-          Base.encode64(body)
+        # If recent_track is nil, skip the rest of the fn & return error state svg
+        if recent_track == nil do
+          conn
+          |> put_resp_content_type("image/svg+xml")
+          |> send_resp(200, construct_svg(%{
+            :title => "Error",
+            :artist => "400",
+            :album => "No recent tracks found",
+            :playing => false,
+            :cover_art => "",
+            :mime_type => "image/jpeg",
+            :theme => params.theme,
+            :bRadius => params.border_radius,
+            :aRadius => params.album_radius
+          }))
         else
-          _ -> "" # Eventually, set a fallback image hash here
-        end
+          nowplaying = recent_track
+          |> Map.get("@attr", %{})
+          |> Map.get("nowplaying", "false")
 
-        svg = case params["svg_url"] do
-          url when is_binary(url) ->
-            with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
-              body
-              |> String.replace("${title}", recent_track["name"])
-              |> String.replace("${artist}", recent_track["artist"]["#text"])
-              |> String.replace("${album}", recent_track["album"]["#text"])
-              |> String.replace("${cover_art}", "data:image/jpeg;base64,#{cover_art}")
-            else
-              _ -> nil
-            end
-          _ -> nil
-        end
+          cover_art_url = recent_track
+          |> Map.get("image", [])
+          |> Enum.find(fn image -> image["size"] == "large" end)
+          |> Map.get("#text", "")
 
-        svg = if svg == nil do
-          construct_svg(
-            %{
-              :title => recent_track["name"],
-              :artist => recent_track["artist"]["#text"],
-              :album => recent_track["album"]["#text"],
-              :playing => nowplaying == "true",
-              :cover_art => cover_art,
-              :mime_type => "image/jpeg",
-              :theme => params["theme"],
-              :aRadius => params["album_radius"],
-              :bRadius => params["border_radius"]
-            }
-          )
+          cover_art = with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(cover_art_url) do
+            Base.encode64(body)
+          else
+            {:error, _} -> "" # Eventually, set a fallback image hash here
+          end
+
+          svg = case params["svg_url"] do
+            url when is_binary(url) ->
+              with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
+                body
+                |> String.replace("${title}", recent_track["name"])
+                |> String.replace("${artist}", recent_track["artist"]["#text"])
+                |> String.replace("${album}", recent_track["album"]["#text"])
+                |> String.replace("${cover_art}", "data:image/jpeg;base64,#{cover_art}")
+              else
+                _ -> nil
+              end
+            _ -> nil
+          end
+
+          svg = if svg == nil do
+            construct_svg(
+              %{
+                :title => recent_track["name"],
+                :artist => recent_track["artist"]["#text"],
+                :album => recent_track["album"]["#text"],
+                :playing => nowplaying == "true",
+                :cover_art => cover_art,
+                :mime_type => "image/jpeg",
+                :theme => params["theme"],
+                :aRadius => params["album_radius"],
+                :bRadius => params["border_radius"]
+              }
+            )
+          else
+            svg
+          end
+
+          conn
+          |> put_resp_header("content-type", "image/svg+xml")
+          |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
+          |> put_resp_header("pragma", "no-cache")
+          |> put_resp_header("expires", "0")
+          |> send_resp(200, svg)
+        end
+      {:error, res} ->
+        reason = res.reason
+        code = res.code
+        Logger.notice("Error: #{reason}")
+        if code == 404 do
+          conn
+          |> put_resp_content_type("image/svg+xml")
+          |> send_resp(200, construct_svg(%{
+            :title => "Error",
+            :artist => "404",
+            :album => "User not found",
+            :playing => false,
+            :cover_art => "",
+            :mime_type => "image/jpeg",
+            :theme => params["theme"],
+            :aRadius => params["album_radius"],
+            :bRadius => params["border_radius"]
+          }))
         else
-          svg
+          json_response(conn, 500, %{status: 500, message: reason})
         end
-
-        conn
-        |> put_resp_header("content-type", "image/svg+xml")
-        |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
-        |> put_resp_header("pragma", "no-cache")
-        |> put_resp_header("expires", "0")
-        |> send_resp(200, svg)
-      {:error, reason} ->
-        Logger.error("Error: #{reason}")
-        json_response(conn, 500, %{status: 500, message: reason})
     end
   end
 

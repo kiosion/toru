@@ -1,6 +1,7 @@
-FROM elixir:1.10
+# Minimum version is 1.14 alpine
+FROM elixir:1.14
 
-# By default, should be run in prod
+# By default, should be built for prod
 ARG ENV=prod
 
 # Set mix env to the same
@@ -12,5 +13,8 @@ WORKDIR /opt/build
 # Add release script to container
 ADD ./bin/release ./bin/release
 
+# Also .env
+ADD ./.env ./.env
+
 # Entry point
-CMD ["bin/release", $ENV]
+CMD ["./bin/release", $ENV]

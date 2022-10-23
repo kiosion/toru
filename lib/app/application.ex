@@ -12,9 +12,6 @@ defmodule Toru.Application do
         options: [
           port: Application.get_env(:toru, :port)
         ]
-      },
-      {
-        Plug.Cowboy.Drainer, refs: [Toru.Router]
       }
     ]
 
@@ -24,8 +21,7 @@ defmodule Toru.Application do
       {:ok, pid} ->
         Application.put_env(:toru, :started_at, System.system_time(:millisecond))
         Logger.info("Toru started")
-        Logger.info("ENV: #{Mix.env()}")
-        # Return pid of the supervisor
+        Logger.info("Listening on port #{Application.get_env(:toru, :port)}")
         {:ok, pid}
       {:error, reason} -> {:error, reason}
     end

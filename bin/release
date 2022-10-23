@@ -2,33 +2,14 @@
 
 set -e
 
-MODE="prod"
-optstring=":m:"
+export MIX_ENV=$1
 
-while getopts ${optstring} arg; do
-  case ${arg} in
-    m)
-      # check for valid mode after -m
-      if [ "$OPTARG" = "dev" ] || [ "$OPTARG" = "prod" ]; then
-        MODE=$OPTARG
-      else
-        echo "ERR: Invalid mode: $OPTARG"
-        exit 1
-      fi
-      ;;
-    :)
-      echo "ERR: Must supply an argument to -$OPTARG."
-      exit 1
-      ;;
-    ?)
-      echo "ERR: Invalid option: -${OPTARG}."
-      exit 2
-      ;;
-  esac
-done
-
-echo "Starting release build for $MODE...\r"
+echo "Starting release build for $MIX_ENV...\r"
 cd /opt/build
+
+source ./.env
+export LFM_API_KEY
+sed -i "s/\${LFM_API_KEY}/\"$LFM_API_KEY\"/g" ./config/$MIX_ENV.env.exs
 
 echo "Installing rebar3 and hex...\r"
 mix local.rebar --force
@@ -40,13 +21,9 @@ mix deps.get --only prod
 echo "Cleaning any leftover build artifacts...\r"
 mix do clean, compile --force
 
-# Set LFM_API_KEY env var
-source ./.env
-export LFM_API_KEY
-sed -i "s/\${LFM_API_KEY}/$LFM_API_KEY/g" config/prod.exs
-
-echo "Building release for $MODE...\r"
+echo "Building release for $MIX_ENV...\r"
 mix release $1 --overwrite
 
 echo "Release built successfully!\r"
+sed -i "s/\"$LFM_API_KEY\"/\${LFM_API_KEY}/g" ./config/$MIX_ENV.env.exs
 exit 0
