@@ -1,20 +1,55 @@
-# Minimum version is 1.14 alpine
-FROM elixir:1.14
+# Min elixir version is 1.14 - build for alpine
+FROM elixir:1.14-alpine AS build
 
-# By default, should be built for prod
+# Install system deps
+RUN apk upgrade --no-cache && \
+    apk add --update bash openssl libgcc libstdc++ ncurses-libs
+
+# Set build args
 ARG ENV=prod
+ARG LFM_TOKEN
 
-# Set mix env to the same
+# Set build dir
+RUN mkdir /app
+WORKDIR /app
+
+# Add scripts
+ADD ./bin/release .
+ADD ./bin/start .
+
+# Copy over source
+COPY mix.exs mix.lock ./
+COPY config config
+COPY lib lib
+
+# Run build script
+RUN ./release -t $LFM_TOKEN
+
+# Prepare release image
+FROM alpine:3.16.2 AS app
+
+# Install system deps
+RUN apk upgrade --no-cache && \
+    apk add --update bash openssl libgcc libstdc++ ncurses-libs
+
+# Expose port 3000
+EXPOSE 3000
 ENV MIX_ENV=$ENV
 
-# Working dir within the container
-WORKDIR /opt/build
+# Create app dir
+RUN mkdir /app
+WORKDIR /app
 
-# Add release script to container
-ADD ./bin/release ./bin/release
+# Copy release from build stage
+COPY --from=build /app/_build ./toru
+COPY --from=build /app/start .
+RUN chown -R nobody: /app
+USER nobody
 
-# Also .env
-ADD ./.env ./.env
+# Set runtime env vars
+ENV PORT=3000
+ENV HOME=/app
+ENV MIX_ENV=$ENV
 
-# Entry point
-CMD ["./bin/release", $ENV]
+# Entrypoint
+ENTRYPOINT ["./start"]
