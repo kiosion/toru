@@ -4,7 +4,7 @@ defmodule Toru.Router.Api.V1 do
 
   require Logger
 
-  @lfm_api_key Application.compile_env(:toru, :lfm_api_key)
+  @lfm_token Application.compile_env!(:toru, :lfm_token)
 
   # Maps for default themes
   @themes %{
@@ -136,7 +136,7 @@ defmodule Toru.Router.Api.V1 do
 
   @spec fetch_info(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
   def fetch_info(username) do
-    url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_api_key}&format=json"
+    url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_token}&format=json"
 
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->

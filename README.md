@@ -1,6 +1,6 @@
 <div align="center">
-<h1>Toru</h1>
-<p>A simple API for generating customizable embeds of last.fm activity</p>
+  <h1>Toru</h1>
+  <p>An API for generating customizable embeds of last.fm activity</p>
 </div>
 
 ## Demos 🚧
@@ -47,10 +47,17 @@ You can alternativly specify a custom SVG asset with `svg_url=<str>`. Toru will 
 
 ## Building / Testing 🔨
 - Clone the repo
-- `mix local.hex --if-missing --force && mix local.rebar --force` to install Hex and Rebar3
-- `mix deps.get` to pull & compile dependencies
-- Make sure you have a `.env` file in the project root, with `LFM_API_KEY` set to your last.fm API key
-- `make dev` to run in dev mode, `make prod` to build a release docker image, or `make test` to run all unit tests
+- `mix local.hex --if-missing --force && mix local.rebar --if-missing --force` to install Hex and Rebar3
+- `mix deps.get` to pull & compile needed dependencies
+
+### Running
+- Make sure you have an `.env` file in the project root, with `LFM_TOKEN` set to your last.fm API key, and optionally `PORT` set to the port you want to run the dev server on (default is 4000)
+- `make dev` to run the dev server, or `make test` to run all unit tests.
+
+### Building a release
+- Environment variables `LFM_TOKEN` and `PORT` are required to build a release
+- `make release` compiles environment variables and builds a docker image with the release
+- `make run` stops any previuosly running docker container, and runs the new release
 
 ## Contributing 🤝
-Feel free to open an issue or PR if you have suggestions or find any bugs!
+Feel free to open an issue or pull request if you have suggestions or find any bugs!

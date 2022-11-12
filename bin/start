@@ -1,59 +1,40 @@
 #!/bin/sh
 
+set -e
 MODE="prod"
-optstring=":m:"
 
-while getopts ${optstring} arg; do
-  case ${arg} in
-    m)
-      # check for valid mode after -m
-      if [ "$OPTARG" = "dev" ] || [ "$OPTARG" = "prod" ]; then
+while getopts ":m:" arg; do
+  case $opt in
+    m) if [ "$OPTARG" = "dev" ] || [ "$OPTARG" = "prod" ]; then
         MODE=$OPTARG
       else
-        echo "ERR: Invalid mode: $OPTARG"
+        echo "ERROR: Invalid mode: $OPTARG"
         exit 1
       fi
       ;;
-    :)
-      echo "ERR: Must supply an argument to -$OPTARG."
-      exit 1
-      ;;
-    ?)
-      echo "ERR: Invalid option: -${OPTARG}."
+    ?) echo "ERROR: Invalid option: -${OPTARG}."
       exit 2
+      ;;
+    :) echo "ERROR: Must supply an argument to -$OPTARG."
+      exit 1
       ;;
   esac
 done
 
 printf "Starting in $MODE mode...\r"
-
-# Check if CWD path 'bin' directory, if so, change to parent directory
 if [ "${PWD##*/}" = "bin" ]; then
   cd ..
 fi
 
-sleep 1
-
-printf "Installing Hex & rebar3...\r"
-mix local.hex --if-missing --force > /dev/null 2>&1
-mix local.rebar --force > /dev/null 2>&1
-
-# Install deps / install, hide output
-printf "Building dependencies...\r"
-mix deps.get > /dev/null 2>&1
-
-# If dev mode
 if [ "$MODE" = "dev" ]; then
-  # Start server w/ mix
+  printf "Building dependencies...\r"
+  mix local.hex --if-missing --force > /dev/null
+  mix local.rebar --if-missing --force > /dev/null
+  mix deps.get > /dev/null
   printf "\r"
-  # Get 'LFM_API_KEY' from .env file
-  source ./.env
-  export LFM_API_KEY
-
-  # MIX_ENV=$MODE mix run --no-halt
-  MIX_ENV=$MODE LFM_API_KEY=$LFM_API_KEY mix run --no-halt
+  source ./.env && MIX_ENV=$MODE mix run --no-halt
 else
-  # Build release
-  printf "Building release...\r"
-  # TODO
+  exec "/app/hexerei/${MODE}/rel/${MODE}/bin/prod" "start"
 fi
+
+exit 0

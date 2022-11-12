@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  workflow_call:
+
+concurrency:
+  group: ci
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Elixir
+        uses: erlef/setup-elixir@v1
+        with:
+          otp-version: 24.0
+          elixir-version: 1.13.0
+      - name: Install Dependencies
+        run: mix deps.get --only test --verbose
+      - name: Install Hex & Rebar
+        run: |
+          mix local.hex --force --if-needed
+          mix local.rebar --force --if-needed
+      - name: Run tests
+        env:
+          MIX_ENV: test
+          LFM_TOKEN: ${{ secrets.LFM_TOKEN }}
+        run: make test
+  release:
+    name: Release
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build for production
+        env:
+          LFM_TOKEN: ${{ secrets.LFM_TOKEN }}
+          PORT: 4000
+        run: make prod
+      - name: Run release
+        run: make run-prod

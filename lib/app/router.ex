@@ -28,11 +28,11 @@ defmodule Toru.Router do
   end
 
   match _ do
-    json_response(conn, 404, %{status: 404, message: "Route or resource not found"})
+    json_response(conn, 404, %{status: 404, message: "Requested resource or route could not be found"})
   end
 
   @impl Plug.ErrorHandler
   def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
-    json_response(conn, 500, %{status: 500, message: "Something went wrong"})
+    json_response(conn, 500, %{status: 500, message: "Sorry, something went wrong"})
   end
 end

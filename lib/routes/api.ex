@@ -22,10 +22,10 @@ defmodule Toru.Router.Api do
   end
 
   match "/v:any" do
-    json_response(conn, 400, %{status: 400, message: "Invalid version specified"})
+    json_response(conn, 400, %{status: 400, message: "Invalid API version specified"})
   end
 
   match _ do
-    json_response(conn, 400, %{status: 400, message: "No version specified"})
+    json_response(conn, 400, %{status: 400, message: "Missing API version"})
   end
 end

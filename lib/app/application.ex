@@ -1,4 +1,8 @@
 defmodule Toru.Application do
+  @moduledoc """
+  Application module for Toru.
+  """
+
   use Application
   require Logger
 
@@ -21,7 +25,6 @@ defmodule Toru.Application do
       {:ok, pid} ->
         Application.put_env(:toru, :started_at, System.system_time(:millisecond))
         Logger.info("Toru started")
-        Logger.info("Listening on port #{Application.get_env(:toru, :port)}")
         {:ok, pid}
       {:error, reason} -> {:error, reason}
     end

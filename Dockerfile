@@ -1,15 +1,16 @@
-# Min elixir version is 1.14 - build for alpine
+# Pull elixir-alpine image for build stage
 FROM elixir:1.14-alpine AS build
 
-# Install system deps
-RUN apk upgrade --no-cache && \
-    apk add --update bash openssl libgcc libstdc++ ncurses-libs
+# Install build dependencies
+RUN apk upgrade --no-cache
+
+RUN apk add --update bash openssl libgcc libstdc++ ncurses-libs
 
 # Set build args
-ARG ENV=prod
+ARG PORT=4000
 ARG LFM_TOKEN
 
-# Set build dir
+# Setup build dir
 RUN mkdir /app
 WORKDIR /app
 
@@ -22,34 +23,35 @@ COPY mix.exs mix.lock ./
 COPY config config
 COPY lib lib
 
-# Run build script
-RUN ./release -t $LFM_TOKEN
+# Run build script, passing in build args
+RUN ./release -p $PORT -t $LFM_TOKEN
 
-# Prepare release image
+# Prepare release image using alpine linux
 FROM alpine:3.16.2 AS app
 
-# Install system deps
-RUN apk upgrade --no-cache && \
-    apk add --update bash openssl libgcc libstdc++ ncurses-libs
+# Install system dependencies
+RUN apk upgrade --no-cache
 
-# Expose port 3000
-EXPOSE 3000
-ENV MIX_ENV=$ENV
+RUN apk add --update bash openssl libgcc libstdc++ ncurses-libs
 
-# Create app dir
+# Expose port
+EXPOSE $PORT
+
+# Prepare app dir
 RUN mkdir /app
 WORKDIR /app
 
-# Copy release from build stage
+# Copy release over from build stage
 COPY --from=build /app/_build ./toru
 COPY --from=build /app/start .
+
 RUN chown -R nobody: /app
 USER nobody
 
 # Set runtime env vars
-ENV PORT=3000
+ENV PORT=$PORT
 ENV HOME=/app
-ENV MIX_ENV=$ENV
+ENV MIX_ENV=prod
 
 # Entrypoint
 ENTRYPOINT ["./start"]
