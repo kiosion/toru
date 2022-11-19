@@ -27,7 +27,7 @@ defmodule Toru.Application do
     case Supervisor.start_link(children, opts) do
       {:ok, pid} ->
         Application.put_env(:toru, :started_at, System.system_time(:millisecond))
-        Logger.info("Toru started")
+        Logger.info("Toru started on port #{Application.get_env(:toru, :port)}")
         if Application.get_env(:toru, :lfm_token) == nil do
           Logger.warn("Last.fm API token not set. Some features will not work.")
         end

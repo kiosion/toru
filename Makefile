@@ -14,7 +14,7 @@ ifndef LFM_TOKEN
 	$(error No token provided. Please set LFM_TOKEN environment variable)
 endif
 ifdef DOCKER_EXISTS
-	@docker build --build-arg PORT=$(PORT) --build-arg LFM_TOKEN=$(LFM_TOKEN) -t toru:latest .
+	@docker build --build-arg PORT=$(PORT) --build-arg LFM_TOKEN=$(LFM_TOKEN) --network=host -t toru:latest .
 else
 	@echo "Docker is not available. Please install docker and try again."
 endif

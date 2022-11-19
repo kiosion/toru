@@ -2,7 +2,7 @@
 FROM elixir:1.14-alpine AS build
 
 # Install build dependencies
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache --allow-untrusted
 
 RUN apk add --update bash openssl libgcc libstdc++ ncurses-libs
 
@@ -30,7 +30,7 @@ RUN ./release -p $PORT -t $LFM_TOKEN
 FROM alpine:3.16.2 AS app
 
 # Install system dependencies
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache --allow-untrusted
 
 RUN apk add --update bash openssl libgcc libstdc++ ncurses-libs
 
