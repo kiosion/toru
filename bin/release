@@ -1,40 +1,36 @@
 #!/usr/bin/env bash
 
 set -e
-PORT="4000"
+PORT=3000
 while getopts ":t:p:" opt; do
-  case $opt in
-    t) LFM_TOKEN = "$OPTARG"
+  case ${opt} in
+    t) LFM_TOKEN="${OPTARG}"
       ;;
-    p) PORT = "$OPTARG"
+    p) PORT="${OPTARG}"
       ;;
-    ?) echo "Invalid option -$OPTARG" >&2
+    ?) echo "Invalid option -${OPTARG}" >&2
       exit 2
       ;;
-    :) echo "Option -$OPTARG requires an argument." >&2
+    :) echo "Option -${OPTARG} requires an argument." >&2
       exit 1
       ;;
   esac
 done
-if [ -z "$LFM_TOKEN" ]; then
-  echo "ERROR: Missing argument for token: -t [token]"
+if [ -z "${LFM_TOKEN}" ]; then
+  echo "ERROR: Missing or invalid argument for token: -t [token]"
   exit 1
 fi
-
 printf "Starting release build...\r"
 cd /app
-sed -i "s/\${LFM_TOKEN}/\"$LFM_TOKEN\"/g" ./config/prod.env.exs
-sed -i "s/\${PORT}/\"$PORT\"/g" ./config/prod.env.exs
-
+sed -i "s/\${LFM_TOKEN}/\"${LFM_TOKEN}\"/g" ./config/prod.env.exs
+sed -i "s/\${PORT}/${PORT}/g" ./config/prod.env.exs
 printf "Fetching project dependencies...\r"
 mix local.rebar --if-missing --force > /dev/null
 mix local.hex --if-missing --force > /dev/null
 mix deps.get --only prod > /dev/null
 mix do clean, compile --force > /dev/null
-
 printf "Building release...\r"
-export MIX_ENV = prod
-mix release prod --overwrite
-
+export MIX_ENV=prod
+MIX_ENV=prod mix release prod --overwrite
 printf "Release built successfully!\r"
 exit 0

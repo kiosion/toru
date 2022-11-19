@@ -1,8 +1,8 @@
-defmodule Toru.Router.Api do
+defmodule Router.Api do
   use Plug.Router
   use Plug.ErrorHandler
 
-  forward("/v1", to: Toru.Router.Api.V1)
+  forward("/v1", to: Api.V1)
 
   plug(:match)
 
@@ -14,7 +14,6 @@ defmodule Toru.Router.Api do
 
   plug(:dispatch)
 
-  @spec json_response(Plug.Conn.t(), integer(), map()) :: Plug.Conn.t()
   def json_response(conn, status, body) do
     conn
     |> put_resp_content_type("application/json")

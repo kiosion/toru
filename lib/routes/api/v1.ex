@@ -1,4 +1,4 @@
-defmodule Toru.Router.Api.V1 do
+defmodule Api.V1 do
   use Plug.Router
   use Plug.ErrorHandler
 
@@ -137,6 +137,8 @@ defmodule Toru.Router.Api.V1 do
   @spec fetch_info(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
   def fetch_info(username) do
     url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_token}&format=json"
+
+    IO.inspect(url)
 
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->

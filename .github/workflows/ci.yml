@@ -1,7 +1,11 @@
 name: CI
 
 on:
-  workflow_call:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
 
 concurrency:
   group: ci
@@ -9,28 +13,10 @@ concurrency:
 
 jobs:
   test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Elixir
-        uses: erlef/setup-elixir@v1
-        with:
-          otp-version: 24.0
-          elixir-version: 1.13.0
-      - name: Install Dependencies
-        run: mix deps.get --only test --verbose
-      - name: Install Hex & Rebar
-        run: |
-          mix local.hex --force --if-needed
-          mix local.rebar --force --if-needed
-      - name: Run tests
-        env:
-          MIX_ENV: test
-          LFM_TOKEN: ${{ secrets.LFM_TOKEN }}
-        run: make test
+    name: Tests
+    uses: ./.github/workflows/test.yml
   release:
+    needs: test
     name: Release
     runs-on: self-hosted
     steps:
@@ -39,7 +25,7 @@ jobs:
       - name: Build for production
         env:
           LFM_TOKEN: ${{ secrets.LFM_TOKEN }}
-          PORT: 4000
-        run: make prod
+          PORT: 3000
+        run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} PORT=3000 make release
       - name: Run release
-        run: make run-prod
+        run: PORT=3000 make run

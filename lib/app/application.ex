@@ -16,6 +16,9 @@ defmodule Toru.Application do
         options: [
           port: Application.get_env(:toru, :port)
         ]
+      },
+      {
+        Plug.Cowboy.Drainer, refs: [:all]
       }
     ]
 
@@ -25,6 +28,9 @@ defmodule Toru.Application do
       {:ok, pid} ->
         Application.put_env(:toru, :started_at, System.system_time(:millisecond))
         Logger.info("Toru started")
+        if Application.get_env(:toru, :lfm_token) == nil do
+          Logger.warn("Last.fm API token not set. Some features will not work.")
+        end
         {:ok, pid}
       {:error, reason} -> {:error, reason}
     end

@@ -1,13 +1,18 @@
-.PHONY: dev, release, run, test, cleanup
+.PHONY: dev, release, run, test, clean
 
 DOCKER_EXISTS := $(shell docker --help > /dev/null 2>&1; echo $$?)
+
+PORT ?= 3000
 
 dev: SHELL:=/bin/bash
 dev: # Run the development environment
 	@./bin/start -m dev
 
 release: SHELL:=/bin/bash
-release: # Check docker is present then build container
+release: # Check docker and env vars are present then build container
+ifndef LFM_TOKEN
+	$(error No token provided. Please set LFM_TOKEN environment variable)
+endif
 ifdef DOCKER_EXISTS
 	@docker build --build-arg PORT=$(PORT) --build-arg LFM_TOKEN=$(LFM_TOKEN) -t toru:latest .
 else
@@ -25,8 +30,10 @@ endif
 
 test: SHELL:=/bin/bash
 test: # Run the mix test suite
-	@source ./.env && mix test --verbose
+	mix deps.get > /dev/null
+	mix deps.compile --force
+	LFM_TOKEN=$(LFM_TOKEN) mix test
 
-cleanup: SHELL:=/bin/bash
-cleanup: # Remove unused dirs
-	@rm -rf _build deps
+clean: SHELL:=/bin/bash
+clean: # Remove unused dirs
+	@rm -rf ./_build ./deps ./erl_crash.dump

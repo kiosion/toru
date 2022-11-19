@@ -4,7 +4,7 @@ defmodule Toru.Router do
 
   plug(Plug.Logger)
 
-  forward("/api", to: Toru.Router.Api)
+  forward("/api", to: Router.Api)
 
   plug(:match)
 
@@ -16,7 +16,7 @@ defmodule Toru.Router do
 
   plug(:dispatch)
 
-  @spec json_response(Plug.Conn.t(), integer(), map()) :: Plug.Conn.t()
+  @spec json_response(Plug.Conn.t(), atom | 1..1_114_111, any) :: Plug.Conn.t()
   def json_response(conn, status, body) do
     conn
     |> put_resp_content_type("application/json")

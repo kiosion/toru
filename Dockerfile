@@ -7,7 +7,7 @@ RUN apk upgrade --no-cache
 RUN apk add --update bash openssl libgcc libstdc++ ncurses-libs
 
 # Set build args
-ARG PORT=4000
+ARG PORT=3000
 ARG LFM_TOKEN
 
 # Setup build dir
