@@ -28,8 +28,8 @@ defmodule Toru.MixProject do
 
   defp deps do
     [
-      {:plug_cowboy, "~> 2.6"},
-      {:poison, "~> 5.0"},
+      {:plug_cowboy, "~> 2.5"},
+      {:poison, "~> 3.1"},
       {:httpoison, "~> 1.8"},
     ]
   end
