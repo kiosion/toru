@@ -89,7 +89,8 @@ defmodule Api.V1 do
     :cover_art => String.t(),
     :mime_type => String.t(),
     :bRadius => String.t(),
-    :aRadius => String.t()
+    :aRadius => String.t(),
+    :bWidth => String.t()
   }
 
   @spec construct_svg(svg_params) :: String.t()
@@ -103,6 +104,7 @@ defmodule Api.V1 do
     theme = Map.get(@themes, params.theme, @themes["light"])
     bRadius = params.bRadius
     aRadius = params.aRadius
+    bWidth = params.bWidth
     width = 412
     height = 128
 
@@ -116,10 +118,10 @@ defmodule Api.V1 do
           <style>.bars{position:relative;display:inline-flex;justify-content:space-between;width:12px;height:9px;margin-right:5px;}.bar{width:2.5px;height:100%;background-color:#{theme["accent"]};border-radius:10000px;transform-origin:bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}</style>
           <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;height:100%;border-radius:#{bRadius}px;background-color:#{theme["background"]};color:#{theme["text"]};padding:0 14px;box-sizing:border-box; overflow:clip;">
             <div style="display:flex;height:fit-content;width:fit-content;">
-              <img src="data:#{mime_type};base64,#{cover_art}" alt="Cover" style="border:1.6px solid #{theme["accent"]};border-radius:#{aRadius}px; background-color:#{theme["background"]}" width="100px" height="100px"/>
+              <img src="data:#{mime_type};base64,#{cover_art}" alt="Cover" style="border:#{bWidth}px solid #{theme["accent"]};border-radius:#{aRadius}px; background-color:#{theme["background"]}" width="100px" height="100px"/>
             </div>
             <div style="display:flex;flex-direction:column;padding-left:14px;">
-              <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:20px;font-weight:bold;padding-bottom:6px;border-bottom:1.6px solid #{theme["accent"]};">#{title}</span>
+              <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:20px;font-weight:bold;padding-bottom:6px;border-bottom:#{bWidth}px solid #{theme["accent"]};">#{title}</span>
               <div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:baseline;width:100%;height:100%;">
                 <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:16px;font-weight:normal;margin-top:4px;">#{playing_indicator}#{artist} - #{album}</span>
               </div>
@@ -154,7 +156,7 @@ defmodule Api.V1 do
 
   get "/:username" do
     params = fetch_query_params(conn).query_params
-    |> validate_query_params(%{"theme" => "light", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil, "url" => nil})
+    |> validate_query_params(%{"theme" => "light", "border_width" => "1.6", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil, "url" => nil})
 
     case fetch_info(username) do
       {:ok, res} ->
@@ -173,9 +175,10 @@ defmodule Api.V1 do
             :playing => false,
             :cover_art => "",
             :mime_type => "image/jpeg",
-            :theme => params.theme,
-            :bRadius => params.border_radius,
-            :aRadius => params.album_radius
+            :theme => params["theme"],
+            :bRadius => params["border_radius"],
+            :aRadius => params["album_radius"],
+            :bWidth => params["border_width"]
           }))
         else
           nowplaying = recent_track
@@ -201,6 +204,9 @@ defmodule Api.V1 do
               # TODO: If resource is not an svg, return 415
               with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
                 body
+                |> String.trim()
+                |> String.replace("\r", "")
+                |> String.replace(~r{>\s+<}, "><")
                 |> String.replace("${title}", recent_track["name"])
                 |> String.replace("${artist}", recent_track["artist"]["#text"])
                 |> String.replace("${album}", recent_track["album"]["#text"])
@@ -224,7 +230,8 @@ defmodule Api.V1 do
                 :mime_type => "image/jpeg",
                 :theme => params["theme"],
                 :aRadius => params["album_radius"],
-                :bRadius => params["border_radius"]
+                :bRadius => params["border_radius"],
+                :bWidth => params["border_width"]
               }
             )
           else
@@ -255,7 +262,8 @@ defmodule Api.V1 do
               :mime_type => "image/jpeg",
               :theme => params["theme"],
               :aRadius => params["album_radius"],
-              :bRadius => params["border_radius"]
+              :bRadius => params["border_radius"],
+              :bWidth => params["border_width"]
             }))
           _ -> conn |> json_response(500, %{status: 500, message: reason})
         end
