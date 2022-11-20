@@ -28,7 +28,7 @@ if [ "${MODE}" = "dev" ]; then
   mix local.hex --if-missing --force > /dev/null
   mix local.rebar --if-missing --force > /dev/null
   mix deps.get > /dev/null
-  mix deps.compile --force > /dev/null
+  mix deps.compile > /dev/null
   printf "\r"
   source ./.env && MIX_ENV=${MODE} LFM_TOKEN=${LFM_TOKEN} mix run --no-halt
 else

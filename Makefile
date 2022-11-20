@@ -31,7 +31,7 @@ endif
 test: SHELL:=/bin/bash
 test: # Run the mix test suite
 	mix deps.get > /dev/null
-	mix deps.compile --force
+	mix deps.compile
 	LFM_TOKEN=$(LFM_TOKEN) mix test
 
 clean: SHELL:=/bin/bash

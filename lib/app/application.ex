@@ -7,6 +7,7 @@ defmodule Toru.Application do
   require Logger
 
   @impl true
+  @spec start(:normal | {:takeover, node()} | {:failover, node()}, any) :: {:error, any} | {:ok, pid}
   def start(_type, _args) do
     children = [
       {

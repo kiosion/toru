@@ -138,8 +138,6 @@ defmodule Api.V1 do
   def fetch_info(username) do
     url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_token}&format=json"
 
-    IO.inspect(url)
-
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         {:ok, body |> Poison.decode!() |> Map.get("recenttracks")}
@@ -156,7 +154,7 @@ defmodule Api.V1 do
 
   get "/:username" do
     params = fetch_query_params(conn).query_params
-    |> validate_query_params(%{"theme" => "light", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil})
+    |> validate_query_params(%{"theme" => "light", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil, "url" => nil})
 
     case fetch_info(username) do
       {:ok, res} ->
@@ -195,14 +193,20 @@ defmodule Api.V1 do
             {:error, _} -> "" # Eventually, set a fallback image hash here
           end
 
-          svg = case params["svg_url"] do
+          # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
+          svgUrl = if params["url"] != nil or params["svg_url"] != nil do params["url"] || params["svg_url"] end
+
+          svg = case svgUrl do
             url when is_binary(url) ->
+              # TODO: If resource is not an svg, return 415
               with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
                 body
                 |> String.replace("${title}", recent_track["name"])
                 |> String.replace("${artist}", recent_track["artist"]["#text"])
                 |> String.replace("${album}", recent_track["album"]["#text"])
                 |> String.replace("${cover_art}", "data:image/jpeg;base64,#{cover_art}")
+                # Also for backwards compatibility :p
+                |> String.replace("${image}", "data:image/jpeg;base64,#{cover_art}")
               else
                 _ -> nil
               end
@@ -236,33 +240,48 @@ defmodule Api.V1 do
         end
       {:error, res} ->
         reason = res.reason
-        code = res.code
         Logger.notice("Error: #{reason}")
-        if code == 404 do
-          conn
-          |> put_resp_content_type("image/svg+xml")
-          |> send_resp(200, construct_svg(%{
-            :title => "Error",
-            :artist => "404",
-            :album => "User not found",
-            :playing => false,
-            :cover_art => "",
-            :mime_type => "image/jpeg",
-            :theme => params["theme"],
-            :aRadius => params["album_radius"],
-            :bRadius => params["border_radius"]
-          }))
-        else
-          json_response(conn, 500, %{status: 500, message: reason})
+
+        case res.code do
+          404 ->
+            conn
+            |> put_resp_content_type("image/svg+xml")
+            |> send_resp(200, construct_svg(%{
+              :title => "Error",
+              :artist => "404",
+              :album => "User not found",
+              :playing => false,
+              :cover_art => "",
+              :mime_type => "image/jpeg",
+              :theme => params["theme"],
+              :aRadius => params["album_radius"],
+              :bRadius => params["border_radius"]
+            }))
+          _ -> conn |> json_response(500, %{status: 500, message: reason})
         end
     end
   end
 
   get "/" do
-    json_response(conn, 400, %{status: 400, message: "Username not provided"})
+    conn |> json_response(400, %{status: 400, message: "Username not provided"})
+  end
+
+  get _ do
+    conn |> json_response(404, %{status: 404, message: "The requested resource could not be found or does not exist"})
   end
 
   match _ do
-    json_response(conn, 404, %{status: 404, message: "Route or resource not found"})
+    path = conn.request_path
+    |> case do
+      "" -> "/"
+      path -> path
+    end
+    method = conn.method
+    conn |> json_response(403, %{status: 403, message: "Cannot #{method} #{path}"})
+  end
+
+  @impl Plug.ErrorHandler
+  def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
+    conn |> json_response(500, %{status: 500, message: "Sorry, something went wrong"})
   end
 end

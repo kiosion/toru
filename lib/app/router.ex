@@ -23,16 +23,22 @@ defmodule Toru.Router do
     |> send_resp(status, Poison.encode!(body))
   end
 
-  get "/" do
-    json_response(conn, 403, %{status: 403, message: "Cannot GET /"})
-  end
-
   match _ do
-    json_response(conn, 404, %{status: 404, message: "Requested resource or route could not be found"})
+    path = conn.request_path
+    |> case do
+      "" -> "/"
+      path -> path
+    end
+    method = conn.method
+
+    case path |> to_string do
+      "/favicon.ico" -> conn |> json_response(404, %{status: 404, message: "The requested resource could not be found or does not exist"})
+      _ -> conn |> json_response(403, %{status: 403, message: "Cannot #{method} #{path}"})
+    end
   end
 
   @impl Plug.ErrorHandler
   def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
-    json_response(conn, 500, %{status: 500, message: "Sorry, something went wrong"})
+    conn |> json_response(500, %{status: 500, message: "Sorry, something went wrong"})
   end
 end
