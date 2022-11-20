@@ -22,8 +22,8 @@ endif
 run: SHELL:=/bin/bash
 run: # Check docker is present then run container
 ifdef DOCKER_EXISTS
-	@docker stop toru-latest > /dev/null || true && docker rm toru-latest > /dev/null || true
-	@docker run -p $(PORT):$(PORT) -it -d --name toru-latest toru:latest
+	@docker stop toru > /dev/null || true && docker rm toru > /dev/null || true
+	@docker run -it -d --network=host --name toru toru:latest
 else
 	@echo "Docker is not available. Please install docker and try again."
 endif
