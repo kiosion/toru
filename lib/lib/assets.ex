@@ -37,20 +37,18 @@ defmodule Toru.Assets do
     end
   end
 
-  @spec themes :: %{
-          optional(<<_::32, _::_*8>>) => %{optional(<<_::32, _::_*16>>) => <<_::56>>}
-        }
+  @spec themes :: %{String.t() => %{String.t() => String.t()}}
   def themes() do
     %{
       "light" => %{
-        "background" => "#F2F2F2",
-        "text" => "#1A1A1A",
-        "accent" => "#8C8C8C"
+        "background" => "#F4F5F7",
+        "text" => "#242932",
+        "accent" => "#57606A"
       },
       "dark" => %{
-        "background" => "#1A1A1A",
-        "text" => "#E6E6E6",
-        "accent" => "#CCCCCC"
+        "background" => "#1A1F24",
+        "text" => "#C9D1D9",
+        "accent" => "#8B949E"
       },
       "shoji" => %{
         "background" => "#E8E8E3",
@@ -73,5 +71,34 @@ defmodule Toru.Assets do
         "accent" => "#81A1C1"
       }
     }
+  end
+
+  @spec base_svg :: String.t()
+  def base_svg() do
+    """
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="{{width}}" height="{{height}}">
+      <foreignObject width="{{width}}" height="{{height}}">
+        <style>.bars{position:relative;display:inline-flex;justify-content:space-between;width:12px;height:9px;margin-right:5px;}.bar{width:2.5px;height:100%;background-color:{{theme["accent"]}};border-radius:10000px;transform-origin:bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}</style>
+        <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;height:100%;border-radius:{{bRadius}}px;background-color:{{theme["background"]}};color:{{theme["text"]}};padding:0 14px;box-sizing:border-box; overflow:clip;">
+          <div style="display:flex;height:fit-content;width:fit-content;">
+            <img src="data:{{mime_type}};base64,{{cover_art}}" alt="Cover" style="border:{{bWidth}}px solid {{theme["accent"]}};border-radius:{{aRadius}}px; background-color:{{theme["background"]}}" width="100px" height="100px"/>
+          </div>
+          <div style="display:flex;flex-direction:column;padding-left:14px;">
+            <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:20px;font-weight:bold;padding-bottom:6px;border-bottom:{{bWidth}}px solid {{theme["accent"]}};">{{title}}</span>
+            <div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:baseline;width:100%;height:100%;">
+              <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:16px;font-weight:normal;margin-top:4px;">{{playing_indicator}}{{artist}} - {{album}}</span>
+            </div>
+          </div>
+        </div>
+      </foreignObject>
+    </svg>
+    """
+  end
+
+  @spec playing_indicator :: String.t()
+  def playing_indicator() do
+    """
+    <div class="bars"><span class="bar"/><span class="bar"/><span class="bar"/></div>
+    """
   end
 end

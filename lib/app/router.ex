@@ -1,6 +1,7 @@
 defmodule Toru.Router do
   use Plug.Router
   use Plug.ErrorHandler
+  use Toru.Utils
 
   plug(Plug.Logger)
 
@@ -16,13 +17,6 @@ defmodule Toru.Router do
 
   plug(:dispatch)
 
-  @spec json_response(Plug.Conn.t(), atom | 1..1_114_111, any) :: Plug.Conn.t()
-  def json_response(conn, status, body) do
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(status, Poison.encode!(body))
-  end
-
   match _ do
     path = conn.request_path
     |> case do
@@ -37,6 +31,7 @@ defmodule Toru.Router do
     end
   end
 
+  # Handle errors that have bubbled up to the router unhandled
   @impl Plug.ErrorHandler
   def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
     conn |> json_response(500, %{error: 500, message: "Sorry, something went wrong"})
