@@ -1,7 +1,7 @@
 defmodule Api.V1 do
   use Plug.Router
-  use Plug.ErrorHandler
   use Toru.Assets
+  use Toru.Utils
 
   require Logger
 
@@ -21,34 +21,6 @@ defmodule Api.V1 do
 
   plug(:dispatch)
 
-  @spec json_response(Plug.Conn.t(), integer(), map()) :: Plug.Conn.t()
-  def json_response(conn, status, body) do
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(status, Poison.encode!(body))
-  end
-
-  @spec html_encode(String.t()) :: String.t()
-  def html_encode(string) do
-    string
-    |> String.replace("&", "&amp;")
-    |> String.replace("<", "&lt;")
-    |> String.replace(">", "&gt;")
-    |> String.replace("\"", "&quot;")
-    |> String.replace("'", "&apos;")
-  end
-
-  @spec validate_query_params(map(), map()) :: map()
-  defp validate_query_params(params, expected) do
-    Enum.reduce(expected, %{}, fn {key, default}, acc ->
-      if Map.has_key?(params, key) do
-        Map.put(acc, key, params[key])
-      else
-        Map.put(acc, key, default)
-      end
-    end)
-  end
-
   @type svg_params :: %{
     :theme => String.t(),
     :title => String.t(),
@@ -64,73 +36,41 @@ defmodule Api.V1 do
 
   @spec construct_svg(svg_params) :: String.t()
   defp construct_svg(params) do
-    title = params.title |> html_encode()
-    artist = params.artist |> html_encode()
-    album = params.album |> html_encode()
-    playing = params.playing
-    cover_art = params.cover_art
-    mime_type = params.mime_type
-    theme = Map.get(@themes, params.theme, @themes["light"])
-    bRadius = params.bRadius
-    aRadius = params.aRadius
-    bWidth = params.bWidth
-    width = 412
-    height = 128
+    values = %{
+      :title => params.title |> html_encode(),
+      :artist => params.artist |> html_encode(),
+      :album => params.album |> html_encode(),
+      :cover_art => params.cover_art,
+      :mime_type => params.mime_type,
+      :theme => Map.get(@themes, params.theme, @themes["light"]),
+      :bRadius => params.bRadius,
+      :aRadius => params.aRadius,
+      :bWidth => params.bWidth,
+      :width => 412,
+      :height => 128,
+      :playing_indicator => playing_indicator(params.playing)
+    }
 
-    playing_indicator = if playing, do: """
-      <div class="bars"><span class="bar"/><span class="bar"/><span class="bar"/></div>
-    """, else: ""
-
-    """
-      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="#{width}" height="#{height}">
-        <foreignObject width="#{width}" height="#{height}">
-          <style>.bars{position:relative;display:inline-flex;justify-content:space-between;width:12px;height:9px;margin-right:5px;}.bar{width:2.5px;height:100%;background-color:#{theme["accent"]};border-radius:10000px;transform-origin:bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}</style>
-          <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;height:100%;border-radius:#{bRadius}px;background-color:#{theme["background"]};color:#{theme["text"]};padding:0 14px;box-sizing:border-box; overflow:clip;">
-            <div style="display:flex;height:fit-content;width:fit-content;">
-              <img src="data:#{mime_type};base64,#{cover_art}" alt="Cover" style="border:#{bWidth}px solid #{theme["accent"]};border-radius:#{aRadius}px; background-color:#{theme["background"]}" width="100px" height="100px"/>
-            </div>
-            <div style="display:flex;flex-direction:column;padding-left:14px;">
-              <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:20px;font-weight:bold;padding-bottom:6px;border-bottom:#{bWidth}px solid #{theme["accent"]};">#{title}</span>
-              <div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:baseline;width:100%;height:100%;">
-                <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:16px;font-weight:normal;margin-top:4px;">#{playing_indicator}#{artist} - #{album}</span>
-              </div>
-            </div>
-          </div>
-        </foreignObject>
-      </svg>
-    """
+    get_asset(:base_svg)
+    |> replace_in_string(values)
     |> String.trim()
     |> String.replace("\r", "")
     |> String.replace(~r{>\s+<}, "><")
   end
 
-  @spec fetch_info(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
-  def fetch_info(username) do
-    url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_token}&format=json"
-
-    case HTTPoison.get(url) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        {:ok, body |> Poison.decode!() |> Map.get("recenttracks")}
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
-        {:error, %{:code => 404, :reason => "User not found"}}
-      {:ok, %HTTPoison.Response{status_code: 400}} ->
-        {:error, %{:code => 400, :reason => "Invalid request"}}
-      {:ok, %HTTPoison.Response{status_code: 403}} ->
-        {:error, %{:code => 403, :reason => "Invalid API key"}}
-      {:ok, %HTTPoison.Response{status_code: 429}} ->
-        {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, %{:code => 500, :reason => reason}}
-    end
+  @spec lfm_url(String.t()) :: String.t()
+  def lfm_url(username) do
+    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{@lfm_token}&format=json"
   end
 
   get "/:username" do
     params = fetch_query_params(conn).query_params
     |> validate_query_params(%{"theme" => "light", "border_width" => "1.6", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil, "url" => nil})
 
-    case fetch_info(username) do
+    case fetch_resp(lfm_url(username)) do
       {:ok, res} ->
         recent_track = res
+        |> Map.get("recenttracks")
         |> Map.get("track", [])
         |> List.first()
 
@@ -256,10 +196,5 @@ defmodule Api.V1 do
     end
     method = conn.method
     conn |> json_response(403, %{error: 403, message: "Cannot #{method} #{path}"})
-  end
-
-  @impl Plug.ErrorHandler
-  def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
-    conn |> json_response(500, %{error: 500, message: "Sorry, something went wrong"})
   end
 end
