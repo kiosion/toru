@@ -69,7 +69,7 @@ jobs:
           commit_hash=$(git rev-parse HEAD)
 
           date_tag=$(date +%Y%m%d)
-          git tag "release/$date_tag/$tag_version" "$commit_hash"
+          git tag v$date_tag-$tag_version $commit_hash
           git push --follow-tags
   release:
     needs: create-tag
