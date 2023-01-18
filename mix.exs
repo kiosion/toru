@@ -4,7 +4,7 @@ defmodule Toru.MixProject do
   def project do
     [
       app: :toru,
-      version: "2.1.4",
+      version: "2.1.5",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
