@@ -39,11 +39,11 @@ jobs:
           echo "New version: $new_version"
           # Replace version in mix.exs
           sed -i "s/version: \"0.0.0\"/version: \"$new_version\"/g" mix.exs
-          echo "tag_version=$(new_version)" >> $GITHUB_ENV
+          echo "tag_version=$new_version" >> $GITHUB_OUTPUT
       - name: Commit and tag
         run: |
           # Get version from previous step
-          tag=${{ env.tag_version }}
+          tag=${{ steps.tag_version.outputs.tag_version }}
 
           # If version is not set, or is not a valid semver, exit
           if [ -z "$tag" ] || ! [[ $tag =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
