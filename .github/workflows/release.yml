@@ -70,7 +70,8 @@ jobs:
 
           date_tag=$(date +%Y%m%d)
           git tag v$date_tag-$tag_version $commit_hash
-          git push --follow-tags
+          git push
+          git push --tags
   release:
     needs: create-tag
     name: Release
