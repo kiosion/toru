@@ -8,8 +8,17 @@ on:
         required: true
         default: "patch"
 
+concurrency:
+  group: release
+  cancel-in-progress: true
+
 jobs:
+  test:
+    name: Tests
+    uses: ./.github/workflows/test.yml
   create-tag:
+    needs: test
+    name: Create tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -57,10 +66,19 @@ jobs:
           git config --local user.name "GitHub Actions"
           git add mix.exs
           git commit -m "release: Bump version to $tag_version"
+          commit_hash=$(git rev-parse HEAD)
 
           date_tag=$(date +%Y%m%d)
-          git tag "release/$date_tag/$tag_version"
+          git tag "release/$date_tag/$tag_version" "$commit_hash"
           git push --follow-tags
-  ci:
+  release:
     needs: create-tag
-    uses: ./.github/workflows/ci.yml
+    name: Release
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build for production
+        run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} PORT=3000 make release
+      - name: Run release
+        run: PORT=3000 make run
