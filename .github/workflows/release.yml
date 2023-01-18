@@ -56,7 +56,7 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add mix.exs
-          git commit -m "Bump version to $tag_version"
+          git commit -m "release: Bump version to $tag_version"
 
           date_tag=$(date +%Y%m%d)
           git tag "release/$date_tag/$tag_version"
