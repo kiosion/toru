@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Type of release: major, minor, patch"
+        required: true
+        default: "patch"
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Generate new release tag
+        id: generate_tag
+        run: |
+          version=$(grep 'version: ' mix.exs)
+          version=${version#*\"}
+          version=${version//\",}
+          IFS=. read major minor patch <<< "$version"
+          echo "Last version: $major.$minor.$patch"
+
+          # Increment version
+          if [ "${{ inputs.release_type }}" = "major" ]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [ "${{ inputs.release_type }}" = "minor" ]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          new_version="$major.$minor.$patch"
+          echo "New version: $new_version"
+          # Replace version in mix.exs
+          sed -i "s/version: \"0.0.0\"/version: \"$new_version\"/g" mix.exs
+          echo "version=$(new_version)" >> $GITHUB_OUTPUT
+      - name: Commit and tag
+        run: |
+          # Get version from previous step
+          tag=${{ steps.generate_tag.outputs.version }}
+
+          # If version is not set, or is not a valid semver, exit
+          if [ -z "$tag" ] || ! [[ $tag =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version: $tag"
+            exit 1
+          fi
+
+          # Commit and tag
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add mix.exs
+          git commit -m "Bump version to $tag"
+
+          date_tag=$(date +%Y%m%d)
+          git tag "release/$date_tag/$tag"
+          git push --follow-tags
+  ci:
+    needs: create-tag
+    uses: ./.github/workflows/ci.yml

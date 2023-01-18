@@ -16,7 +16,7 @@ defmodule Router.Api do
   plug(:dispatch)
 
   match "/v:any" do
-    conn |> json_response(400, %{error: 400, message: "Invalid API version specified"})
+    conn |> json_response(400, %{status: 400, message: "Bad Request", detail: "Invalid API version specified"})
   end
 
   match _ do
@@ -27,6 +27,6 @@ defmodule Router.Api do
     end
     method = conn.method
 
-    conn |> json_response(403, %{error: 403, message: "Cannot #{method} #{path}"})
+    conn |> json_response(403, %{status: 403, message: "Forbidden", detail: "Cannot #{method} #{path}"})
   end
 end

@@ -38,7 +38,7 @@ defmodule Toru.Assets do
   end
 
   @spec themes :: %{String.t() => %{String.t() => String.t()}}
-  def themes() do
+  def themes(), do:
     %{
       "light" => %{
         "background" => "#F4F5F7",
@@ -71,10 +71,9 @@ defmodule Toru.Assets do
         "accent" => "#81A1C1"
       }
     }
-  end
 
   @spec base_svg :: String.t()
-  def base_svg() do
+  def base_svg(), do:
     """
     <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="{{width}}" height="{{height}}">
       <foreignObject width="{{width}}" height="{{height}}">
@@ -93,12 +92,10 @@ defmodule Toru.Assets do
       </foreignObject>
     </svg>
     """
-  end
 
   @spec playing_indicator :: String.t()
-  def playing_indicator() do
+  def playing_indicator(), do:
     """
     <div class="bars"><span class="bar"/><span class="bar"/><span class="bar"/></div>
     """
-  end
 end
