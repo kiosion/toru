@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Generate new release tag
-        id: generate_tag
+        id: generate-tag
         run: |
           version=$(grep 'version: ' mix.exs)
           version=${version#*\"}
@@ -43,11 +43,11 @@ jobs:
       - name: Commit and tag
         run: |
           # Get version from previous step
-          tag=${{ steps.tag_version.outputs.tag_version }}
+          tag_version=${{ steps.generate-tag.outputs.tag_version }}
 
           # If version is not set, or is not a valid semver, exit
-          if [ -z "$tag" ] || ! [[ $tag =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version: $tag"
+          if [ -z "$tag_version" ] || ! [[ $tag_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version: $tag_version"
             exit 1
           fi
 
@@ -55,10 +55,10 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add mix.exs
-          git commit -m "Bump version to $tag"
+          git commit -m "Bump version to $tag_version"
 
           date_tag=$(date +%Y%m%d)
-          git tag "release/$date_tag/$tag"
+          git tag "release/$date_tag/$tag_version"
           git push --follow-tags
   ci:
     needs: create-tag
