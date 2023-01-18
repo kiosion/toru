@@ -1,44 +1,13 @@
 defmodule Api.V1 do
   use Plug.Router
   use Plug.ErrorHandler
+  use Toru.Assets
 
   require Logger
 
   @lfm_token Application.compile_env!(:toru, :lfm_token)
 
-  # Maps for default themes
-  @themes %{
-    "light" => %{
-      "background" => "#F2F2F2",
-      "text" => "#1A1A1A",
-      "accent" => "#8C8C8C"
-    },
-    "dark" => %{
-      "background" => "#1A1A1A",
-      "text" => "#E6E6E6",
-      "accent" => "#CCCCCC"
-    },
-    "shoji" => %{
-      "background" => "#E8E8E3",
-      "text" => "#4D4D4D",
-      "accent" => "#4D4D4D"
-    },
-    "solarized" => %{
-      "background" => "#FDF6E3",
-      "text" => "#657B83",
-      "accent" => "#839496"
-    },
-    "dracula" => %{
-      "background" => "#282A36",
-      "text" => "#F8F8F2",
-      "accent" => "#6272A4"
-    },
-    "nord" => %{
-      "background" => "#2E3440",
-      "text" => "#ECEFF4",
-      "accent" => "#81A1C1"
-    }
-  }
+  @themes get_asset(:themes)
 
   plug(:match)
 
@@ -112,7 +81,7 @@ defmodule Api.V1 do
       <div class="bars"><span class="bar"/><span class="bar"/><span class="bar"/></div>
     """, else: ""
 
-    svg = """
+    """
       <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="#{width}" height="#{height}">
         <foreignObject width="#{width}" height="#{height}">
           <style>.bars{position:relative;display:inline-flex;justify-content:space-between;width:12px;height:9px;margin-right:5px;}.bar{width:2.5px;height:100%;background-color:#{theme["accent"]};border-radius:10000px;transform-origin:bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}</style>
@@ -130,7 +99,6 @@ defmodule Api.V1 do
         </foreignObject>
       </svg>
     """
-    svg
     |> String.trim()
     |> String.replace("\r", "")
     |> String.replace(~r{>\s+<}, "><")
@@ -147,8 +115,10 @@ defmodule Api.V1 do
         {:error, %{:code => 404, :reason => "User not found"}}
       {:ok, %HTTPoison.Response{status_code: 400}} ->
         {:error, %{:code => 400, :reason => "Invalid request"}}
-      {:ok, _} ->
-        {:error, %{:code => 500, :reason => "Unknown response"}}
+      {:ok, %HTTPoison.Response{status_code: 403}} ->
+        {:error, %{:code => 403, :reason => "Invalid API key"}}
+      {:ok, %HTTPoison.Response{status_code: 429}} ->
+        {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, %{:code => 500, :reason => reason}}
     end
@@ -265,17 +235,17 @@ defmodule Api.V1 do
               :bRadius => params["border_radius"],
               :bWidth => params["border_width"]
             }))
-          _ -> conn |> json_response(500, %{status: 500, message: reason})
+          _ -> conn |> json_response(500, %{error: 500, message: reason})
         end
     end
   end
 
   get "/" do
-    conn |> json_response(400, %{status: 400, message: "Username not provided"})
+    conn |> json_response(400, %{error: 400, message: "Username not provided"})
   end
 
   get _ do
-    conn |> json_response(404, %{status: 404, message: "The requested resource could not be found or does not exist"})
+    conn |> json_response(404, %{error: 404, message: "The requested resource could not be found or does not exist"})
   end
 
   match _ do
@@ -285,11 +255,11 @@ defmodule Api.V1 do
       path -> path
     end
     method = conn.method
-    conn |> json_response(403, %{status: 403, message: "Cannot #{method} #{path}"})
+    conn |> json_response(403, %{error: 403, message: "Cannot #{method} #{path}"})
   end
 
   @impl Plug.ErrorHandler
   def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
-    conn |> json_response(500, %{status: 500, message: "Sorry, something went wrong"})
+    conn |> json_response(500, %{error: 500, message: "Sorry, something went wrong"})
   end
 end
