@@ -37,8 +37,6 @@ jobs:
 
           new_version="$major.$minor.$patch"
           echo "New version: $new_version"
-          # Replace version in mix.exs
-          sed -i "s/version: \"0.0.0\"/version: \"$new_version\"/g" mix.exs
           echo "tag_version=$new_version" >> $GITHUB_OUTPUT
       - name: Commit and tag
         run: |
@@ -50,6 +48,9 @@ jobs:
             echo "Invalid version: $tag_version"
             exit 1
           fi
+
+          # Replace version in mix.exs
+          sed -i "s/version: \".*\"/version: \"$tag_version\"/" mix.exs
 
           # Commit and tag
           git config --local user.email "actions@github.com"
