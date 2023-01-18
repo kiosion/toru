@@ -12,6 +12,9 @@ defmodule Toru.Utils do
     end
   end
 
+  @spec app_version() :: String.t()
+  def app_version(), do: to_string(Application.spec(:toru, :vsn))
+
   @spec json_response(Plug.Conn.t(), integer(), map()) :: Plug.Conn.t()
   def json_response(conn, status, body) do
     conn
@@ -55,6 +58,8 @@ defmodule Toru.Utils do
         {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, %{:code => 500, :reason => reason}}
+      _ ->
+        {:error, %{:code => 500, :reason => "Unknown error"}}
     end
   end
 

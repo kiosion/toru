@@ -175,17 +175,17 @@ defmodule Api.V1 do
               :bRadius => params["border_radius"],
               :bWidth => params["border_width"]
             }))
-          _ -> conn |> json_response(500, %{error: 500, message: reason})
+          _ -> conn |> json_response(500, %{status: 500, message: "Internal Error", detail: reason})
         end
     end
   end
 
   get "/" do
-    conn |> json_response(400, %{error: 400, message: "Username not provided"})
+    conn |> json_response(400, %{status: 400, message: "Bad Request", detail: "Username not provided"})
   end
 
   get _ do
-    conn |> json_response(404, %{error: 404, message: "The requested resource could not be found or does not exist"})
+    conn |> json_response(404, %{status: 404, message: "Not Found", detail: "The requested resource could not be found or does not exist"})
   end
 
   match _ do
@@ -195,6 +195,6 @@ defmodule Api.V1 do
       path -> path
     end
     method = conn.method
-    conn |> json_response(403, %{error: 403, message: "Cannot #{method} #{path}"})
+    conn |> json_response(403, %{status: 403, message: "Forbidden", detail: "Cannot #{method} #{path}"})
   end
 end
