@@ -9,13 +9,7 @@ defmodule Toru.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       escript: [main_module: Toru.MixProject],
-      releases: [
-        prod: [
-          include_executables_for: [:unix],
-          steps: [:assemble, :tar],
-          validate_compile_env: false
-        ]
-      ]
+      releases: releases()
     ]
   end
 
@@ -31,6 +25,15 @@ defmodule Toru.MixProject do
       {:plug_cowboy, "~> 2.6"},
       {:poison, "~> 4.0"},
       {:httpoison, "~> 1.8"},
+    ]
+  end
+
+  defp releases do
+    [
+      prod: [
+        include_executables_for: [:unix],
+        steps: [:assemble, :tar]
+      ]
     ]
   end
 end

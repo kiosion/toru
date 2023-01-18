@@ -6,7 +6,13 @@ PORT ?= 3000
 
 dev: SHELL:=/bin/bash
 dev: # Run the development environment
-	@./bin/start -m dev
+	@bash -c "printf \"Building dependencies\r\" &&\
+	mix local.hex --if-missing --force > /dev/null &&\
+	mix local.rebar --if-missing --force > /dev/null &&\
+	mix deps.get > /dev/null && \
+	mix deps.compile > /dev/null &&\
+	printf \"\n\r\""
+	@./bin/start
 
 release: SHELL:=/bin/bash
 release: # Check docker and env vars are present then build container

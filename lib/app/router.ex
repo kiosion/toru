@@ -32,13 +32,13 @@ defmodule Toru.Router do
     method = conn.method
 
     case path |> to_string do
-      "/favicon.ico" -> conn |> json_response(404, %{status: 404, message: "The requested resource could not be found or does not exist"})
-      _ -> conn |> json_response(403, %{status: 403, message: "Cannot #{method} #{path}"})
+      "/favicon.ico" -> conn |> json_response(404, %{error: 404, message: "The requested resource could not be found or does not exist"})
+      _ -> conn |> json_response(403, %{error: 403, message: "Cannot #{method} #{path}"})
     end
   end
 
   @impl Plug.ErrorHandler
   def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
-    conn |> json_response(500, %{status: 500, message: "Sorry, something went wrong"})
+    conn |> json_response(500, %{error: 500, message: "Sorry, something went wrong"})
   end
 end
