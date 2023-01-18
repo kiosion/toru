@@ -2,6 +2,11 @@ name: CI
 
 on:
   workflow_call:
+  push:
+    tags:
+      - 'v*-*.*.*'
+    branches-ignore:
+      - '!main'
 
 concurrency:
   group: ci
@@ -19,9 +24,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build for production
-        env:
-          LFM_TOKEN: ${{ secrets.LFM_TOKEN }}
-          PORT: 3000
         run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} PORT=3000 make release
       - name: Run release
-        run: PORT=3000 make run
+        run: make run

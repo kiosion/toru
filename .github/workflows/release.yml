@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: release
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -72,14 +72,3 @@ jobs:
           git tag v$date_tag-$tag_version $commit_hash
           git push
           git push --tags
-  release:
-    needs: create-tag
-    name: Release
-    runs-on: self-hosted
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Build for production
-        run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} PORT=3000 make release
-      - name: Run release
-        run: PORT=3000 make run
