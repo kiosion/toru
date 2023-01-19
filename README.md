@@ -8,8 +8,6 @@
 <div align="center">
   <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=dark" alt="Last.fm Activity" width="380px" /></a>
   <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=light" alt="Last.fm Activity" width="380px" /></a>
-  <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=shoji" alt="Last.fm Activity" width="380px" /></a>
-  <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=nord" alt="Last.fm Activity" width="380px" /></a>
 </div>
 
 ## Usage 🔧
@@ -37,6 +35,16 @@ The border radius of the album art can be specified as an integer with `cover_ra
 
 #### Response type
 There are two response types: 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string with `res=<str>`
+
+#### Blurred background
+You can pass `json` as a query param to enable a blurred background:
+
+<a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=nord&blur" alt="Last.fm Activity" width="380px" /></a>
+
+#### Border width
+The width of the borders can be specified (or removed by setting to '0') with `border_width=<int>`:
+
+<a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=dracula&border_width=0" alt="Last.fm Activity" width="380px" /></a>
 
 #### Custom SVG asset
 You can alternativly specify a custom SVG asset with `svg_url=<str>`. Toru will fill in the artist name, track title, album title, and cover art resource using the following template strings:
