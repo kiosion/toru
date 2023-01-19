@@ -37,7 +37,7 @@ The border radius of the album art can be specified as an integer with `cover_ra
 There are two response types: 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string with `res=<str>`
 
 #### Blurred background
-You can pass `json` as a query param to enable a blurred background:
+You can pass `blur` as a query param to enable a blurred background:
 
 <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=nord&blur" alt="Last.fm Activity" width="380px" /></a>
 
