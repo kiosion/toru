@@ -48,8 +48,13 @@ defmodule Api.V1 do
       :bWidth => params.bWidth,
       :width => 412,
       :height => 128,
-      :playing_indicator => playing_indicator(params.playing)
+      :playing_indicator => playing_indicator(params.playing),
     }
+
+    values = case params.blur do
+      nil -> Map.put(values, :background_image, "")
+      _ -> Map.put(values, :background_image, "<div style=\"background-color:{{theme[\"background\"]}};position:absolute;top:-100px;left:-100px;width:600px;height:600px;opacity:0.6;filter:blur(18px);backdrop-filter:blur(18px);z-index:1;\"/><img src=\"data:{{mime_type}};base64,{{cover_art}}\" class=\"bgBlur\"/>")
+    end
 
     get_asset(:base_svg)
     |> replace_in_string(values)
@@ -65,7 +70,7 @@ defmodule Api.V1 do
 
   get "/:username" do
     params = fetch_query_params(conn).query_params
-    |> validate_query_params(%{"theme" => "light", "border_width" => "1.6", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil, "url" => nil})
+    |> validate_query_params(%{"theme" => "light", "border_width" => "1.6", "border_radius" => "22", "album_radius" => "16", "svg_url" => nil, "url" => nil, "blur" => nil})
 
     case fetch_resp(lfm_url(username)) do
       {:ok, res} ->
@@ -88,7 +93,8 @@ defmodule Api.V1 do
             :theme => params["theme"],
             :bRadius => params["border_radius"],
             :aRadius => params["album_radius"],
-            :bWidth => params["border_width"]
+            :bWidth => params["border_width"],
+            :blur => params["blur"]
           }))
         else
           nowplaying = recent_track
@@ -100,10 +106,14 @@ defmodule Api.V1 do
           |> Enum.find(fn image -> image["size"] == "large" end)
           |> Map.get("#text", "")
 
-          cover_art = with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(cover_art_url) do
-            Base.encode64(body)
-          else
-            {:error, _} -> "" # Eventually, set a fallback image hash here
+          cover_art = try do
+            with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(cover_art_url) do
+              Base.encode64(body)
+            else
+              {:error, _} -> "" # Eventually, set a fallback image hash here
+            end
+          rescue
+            _ -> ""
           end
 
           # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
@@ -141,7 +151,8 @@ defmodule Api.V1 do
                 :theme => params["theme"],
                 :aRadius => params["album_radius"],
                 :bRadius => params["border_radius"],
-                :bWidth => params["border_width"]
+                :bWidth => params["border_width"],
+                :blur => params["blur"]
               }
             )
           else

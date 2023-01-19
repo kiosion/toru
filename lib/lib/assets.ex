@@ -75,9 +75,9 @@ defmodule Toru.Assets do
   @spec base_svg :: String.t()
   def base_svg(), do:
     """
-    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="{{width}}" height="{{height}}">
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="{{width}}" height="{{height}}" style="overflow:hidden;border-radius:{{bRadius}}px;">
       <foreignObject width="{{width}}" height="{{height}}">
-        <style>.bars{position:relative;display:inline-flex;justify-content:space-between;width:12px;height:9px;margin-right:5px;}.bar{width:2.5px;height:100%;background-color:{{theme["accent"]}};border-radius:10000px;transform-origin:bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}</style>
+        <style>.bars{position:relative;display:inline-flex;justify-content:space-between;width:12px;height:9px;margin-right:5px;}.bar{width:2.5px;height:100%;background-color:{{theme["accent"]}};border-radius:10000px;transform-origin:bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}.bgBlur{transform:translate(-10%, -30%);z-index:0;backdrop-filter:blur(18px);filter:blur(18px);background-repeat:no-repeat;position:absolute;top:0;left:0;aspect-ratio:1/1;width:calc({{width}}px + 100px);}:not(.bgBlur){z-index:2;}</style>
         <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;height:100%;border-radius:{{bRadius}}px;background-color:{{theme["background"]}};color:{{theme["text"]}};padding:0 14px;box-sizing:border-box; overflow:clip;">
           <div style="display:flex;height:fit-content;width:fit-content;">
             <img src="data:{{mime_type}};base64,{{cover_art}}" alt="Cover" style="border:{{bWidth}}px solid {{theme["accent"]}};border-radius:{{aRadius}}px; background-color:{{theme["background"]}}" width="100px" height="100px"/>
@@ -88,6 +88,7 @@ defmodule Toru.Assets do
               <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:16px;font-weight:normal;margin-top:4px;">{{playing_indicator}}{{artist}} - {{album}}</span>
             </div>
           </div>
+          {{background_image}}
         </div>
       </foreignObject>
     </svg>
