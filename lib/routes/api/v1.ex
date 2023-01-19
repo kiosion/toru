@@ -49,11 +49,16 @@ defmodule Api.V1 do
       :width => 412,
       :height => 128,
       :playing_indicator => playing_indicator(params.playing),
+      :line_margin => case params.bWidth do
+        "0" -> 0
+        0 -> 0
+        _ -> 4
+      end
     }
 
     values = case params.blur do
-      nil -> Map.put(values, :background_image, "")
-      _ -> Map.put(values, :background_image, "<div style=\"background-color:{{theme[\"background\"]}};position:absolute;top:-100px;left:-100px;width:600px;height:600px;opacity:0.6;filter:blur(18px);backdrop-filter:blur(18px);z-index:1;\"/><img src=\"data:{{mime_type}};base64,{{cover_art}}\" class=\"bgBlur\"/>")
+      nil -> values |> Map.put(:background_image, "")
+      _ -> values |> Map.put(:background_image, "<div style=\"background-color:{{theme[\"background\"]}};position:absolute;top:-100px;left:-100px;width:600px;height:600px;opacity:0.6;filter:blur(18px);backdrop-filter:blur(18px);z-index:1;\"/><img src=\"data:{{mime_type}};base64,{{cover_art}}\" class=\"bgBlur\"/>")
     end
 
     get_asset(:base_svg)

@@ -83,9 +83,9 @@ defmodule Toru.Assets do
             <img src="data:{{mime_type}};base64,{{cover_art}}" alt="Cover" style="border:{{bWidth}}px solid {{theme["accent"]}};border-radius:{{aRadius}}px; background-color:{{theme["background"]}}" width="100px" height="100px"/>
           </div>
           <div style="display:flex;flex-direction:column;padding-left:14px;">
-            <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:20px;font-weight:bold;padding-bottom:6px;border-bottom:{{bWidth}}px solid {{theme["accent"]}};">{{title}}</span>
+            <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:20px;font-weight:bold;padding-bottom:calc({{line_margin}}px + {{line_margin}}px / 2);border-bottom:{{bWidth}}px solid {{theme["accent"]}};">{{title}}</span>
             <div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:baseline;width:100%;height:100%;">
-              <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:16px;font-weight:normal;margin-top:4px;">{{playing_indicator}}{{artist}} - {{album}}</span>
+              <span style="font-family:'Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5rem;font-size:16px;font-weight:normal;margin-top:{{line_margin}}px;">{{playing_indicator}}{{artist}} - {{album}}</span>
             </div>
           </div>
           {{background_image}}
