@@ -24,7 +24,7 @@ defmodule Toru.MixProject do
     [
       {:plug_cowboy, "~> 2.6"},
       {:poison, "~> 4.0"},
-      {:httpoison, "~> 1.8"},
+      {:httpoison, "~> 2.0"},
       {:exsync, "~> 0.2", only: :dev},
     ]
   end
