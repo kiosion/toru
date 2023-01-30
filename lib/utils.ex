@@ -32,8 +32,10 @@ defmodule Toru.Utils do
     |> String.replace("'", "&apos;")
   end
 
-  @spec validate_query_params(map(), map()) :: map()
+  # Take in map of query params and map of expected as String.t() => String.t(), return map of atom => String.t()
   def validate_query_params(params, expected) do
+    params = Enum.into(params, %{}, fn {key, value} -> {String.to_atom(key), value} end)
+
     Enum.reduce(expected, %{}, fn {key, default}, acc ->
       if Map.has_key?(params, key) do
         Map.put(acc, key, params[key])
@@ -43,8 +45,8 @@ defmodule Toru.Utils do
     end)
   end
 
-  @spec fetch_resp(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
-  def fetch_resp(url) do
+  @spec fetch_res(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
+  def fetch_res(url) do
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         {:ok, body |> Poison.decode!()}
@@ -72,17 +74,22 @@ defmodule Toru.Utils do
   end
 
   @spec replace_in_string(String.t(), map()) :: String.t()
-  def replace_in_string(string, replacements) do
+  @doc """
+  Replace placeholders in a string with values from a map, given an optional placeholder (default: {{_}})
+  """
+  def replace_in_string(string, replacements, pattern \\ "{{_}}") do
     Enum.reduce(replacements, string, fn {key, value}, acc ->
       key = key |> to_string
+      [p_start, p_end] = pattern |> String.split("_")
+
       # If value is a nested map, then the placeholder should have the key to access in the nested map
       # Example: {{placeholder["key"]}} -> value["key"]
       case is_map(value) do
         true ->
-          regex = ~r/{{#{key}\["(.*?)"\]}}/
+          regex = ~r/#{p_start}#{key}\["(.*?)"\]#{p_end}/
           Regex.replace(regex, acc, fn _, key -> Map.get(value, key) end)
         _ ->
-          regex = ~r/{{#{key}}}/
+          regex = ~r/#{p_start}#{key}#{p_end}/
           Regex.replace(regex, acc, to_string(value))
       end
     end)

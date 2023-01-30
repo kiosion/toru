@@ -10,9 +10,9 @@ dev: # Run the development environment
 	mix local.hex --if-missing --force > /dev/null &&\
 	mix local.rebar --if-missing --force > /dev/null &&\
 	mix deps.get > /dev/null && \
-	mix deps.compile > /dev/null &&\
+	mix do clean, compile > /dev/null &&\
 	printf \"\n\r\""
-	@./bin/start
+	@source ./.env && LFM_TOKEN=$$LFM_TOKEN mix run --no-halt
 
 release: SHELL:=/bin/bash
 release: # Check docker and env vars are present then build container
@@ -37,7 +37,7 @@ endif
 test: SHELL:=/bin/bash
 test: # Run the mix test suite
 	mix deps.get > /dev/null
-	mix deps.compile
+	mix deps.compile --only=test > /dev/null
 	LFM_TOKEN=$(LFM_TOKEN) mix test
 
 clean: SHELL:=/bin/bash
