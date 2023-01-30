@@ -1,4 +1,4 @@
-.PHONY: dev, release, run, test, clean
+.PHONY: dev release run test clean
 
 DOCKER_EXISTS := $(shell docker --help > /dev/null 2>&1; echo $$?)
 
@@ -36,9 +36,9 @@ endif
 
 test: SHELL:=/bin/bash
 test: # Run the mix test suite
-	mix deps.get > /dev/null
-	mix deps.compile --only=test > /dev/null
-	LFM_TOKEN=$(LFM_TOKEN) mix test
+	@mix deps.get > /dev/null
+	@mix deps.compile --only=test > /dev/null
+	@source ./.env || true && LFM_TOKEN=$$LFM_TOKEN mix test
 
 clean: SHELL:=/bin/bash
 clean: # Remove unused dirs

@@ -15,16 +15,16 @@ defmodule Toru.MixProject do
 
   def application do
     case Mix.env() do
-      :prod ->
+      :dev ->
         [
-          extra_applications: [:logger],
+          extra_applications: [:logger, :runtime_tools],
           mod: {
             Toru.Application, []
           }
         ]
       _ ->
         [
-          extra_applications: [:logger, :runtime_tools],
+          extra_applications: [:logger],
           mod: {
             Toru.Application, []
           }
@@ -34,19 +34,19 @@ defmodule Toru.MixProject do
 
   defp deps do
     case Mix.env() do
-      :prod ->
-        [
-          {:plug_cowboy, "~> 2.6"},
-          {:poison, "~> 4.0"},
-          {:httpoison, "~> 2.0"}
-        ]
-      _ ->
+      :dev ->
         [
           {:plug_cowboy, "~> 2.6"},
           {:poison, "~> 4.0"},
           {:httpoison, "~> 2.0"},
           {:exsync, "~> 0.2"},
           {:file_system, "~> 0.2"}
+        ]
+      _ ->
+        [
+          {:plug_cowboy, "~> 2.6"},
+          {:poison, "~> 4.0"},
+          {:httpoison, "~> 2.0"}
         ]
     end
   end
