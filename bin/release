@@ -22,15 +22,15 @@ if [ -z "${LFM_TOKEN}" ]; then
 fi
 printf "Starting release build...\r"
 cd /app
-sed -i "s/\${LFM_TOKEN}/\"${LFM_TOKEN}\"/g" ./config/prod.env.exs
-sed -i "s/\${PORT}/${PORT}/g" ./config/prod.env.exs
+sed -i "s/{{LFM_TOKEN}}/${LFM_TOKEN}/g" ./config/prod.env.exs
+sed -i "s/{{PORT}}/${PORT}/g" ./config/prod.env.exs
 printf "Fetching project dependencies...\r"
+export MIX_ENV=prod
 mix local.rebar --if-missing --force > /dev/null
 mix local.hex --if-missing --force > /dev/null
-mix deps.get --only prod > /dev/null
+mix deps.get > /dev/null
 mix do clean, compile --force > /dev/null
 printf "Building release...\r"
-export MIX_ENV=prod
-MIX_ENV=prod mix release prod --overwrite
+mix release prod --overwrite
 printf "Release built successfully!\r"
 exit 0

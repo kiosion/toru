@@ -1,9 +1,0 @@
-#!/bin/sh
-
-source ./.env
-if [ -z "${LFM_TOKEN}" ]; then
-  echo "ERROR: Missing or invalid token"
-  exit 1
-fi
-MIX_ENV="dev" LFM_TOKEN=${LFM_TOKEN} mix run --no-halt
-exit 0

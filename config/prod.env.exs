@@ -1,5 +1,5 @@
 import Mix.Config
 
 config :toru,
-  port: ${PORT},
-  lfm_token: ${LFM_TOKEN}
+  port: {"PORT", "3000", :int},
+  lfm_token: {"LFM_TOKEN", "{{LFM_TOKEN}}"}
