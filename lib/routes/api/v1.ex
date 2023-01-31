@@ -60,14 +60,18 @@ defmodule Api.V1 do
       end
     }
 
-    values = with true <- params.blur != nil do values |> Map.put(:background_image, get_asset(:background_image)) else _ -> values |> Map.put(:background_image, "") end
+    values = with true <- params.blur != nil do
+      values
+      |> Map.put(
+        :background_image,
+        get_asset(:background_image) |> replace_in_string!(values)
+      )
+    else
+      _ -> values |> Map.put(:background_image, "")
+    end
 
-    # IO.inspect(values)
-
-    svg = get_asset(:base_svg)
-
-    svg
-    |> replace_in_string(values)
+    get_asset(:base_svg)
+    |> replace_in_string!(values)
     |> String.trim()
     |> String.replace("\r", "")
     |> String.replace(~r{>\s+<}, "><")
@@ -79,20 +83,33 @@ defmodule Api.V1 do
       raise "No username specified"
     end
 
-    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json"
+    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
   end
 
-  defp set_headers(conn) do
+  @spec fetch_cover_art(String.t()) :: binary
+  defp fetch_cover_art(url) do
+    fallback = "" # Eventually, set a fallback image hash here
+    try do with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
+        Base.encode64(body)
+      else
+        {:error, _} -> fallback
+      end
+    rescue
+      _ -> fallback
+    end
+  end
+
+  @spec set_headers(Plug.Conn.t()) :: Plug.Conn.t()
+  defp set_headers(conn), do:
     conn
     |> put_resp_header("content-type", "image/svg+xml")
     |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
     |> put_resp_header("pragma", "no-cache")
     |> put_resp_header("expires", "0")
-  end
 
-  get "/:username" do
-    params = fetch_query_params(conn).query_params
-    |> validate_query_params(%{
+  @spec default_params() :: map()
+  defp default_params(), do:
+    %{
       :theme => "light",
       :border_width => "1.6",
       :border_radius => "22",
@@ -100,28 +117,25 @@ defmodule Api.V1 do
       :svg_url => nil,
       :url => nil,
       :blur => nil
-    })
+    }
+
+  get "/:username" do
+    params = fetch_query_params(conn).query_params |> validate_query_params(default_params())
 
     with {:ok, res} <- fetch_res(lfm_url!(username)),
          [recent_track | _] <- res |> Map.get("recenttracks", []) |> Map.get("track", []) do
       nowplaying = recent_track
       |> Map.get("@attr", %{})
       |> Map.get("nowplaying", "false")
+      |> fn s -> s == "true" end.()
 
-      cover_art_url = recent_track
-      |> Map.get("image", [])
-      |> Enum.find(fn image -> image["size"] == "large" end)
-      |> Map.get("#text", "")
-
-      cover_art = try do
-        with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(cover_art_url) do
-          Base.encode64(body)
-        else
-          {:error, _} -> "" # Eventually, set a fallback image hash here
-        end
-      rescue
-        _ -> ""
-      end
+      cover_art = Task.async(fn ->
+        recent_track
+        |> Map.get("image", [])
+        |> Enum.find(fn image -> image["size"] == "large" end)
+        |> Map.get("#text", "")
+        |> fetch_cover_art()
+      end)
 
       # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
       svgUrl = if params.url != nil or params.svg_url != nil do params.url || params.svg_url end
@@ -131,16 +145,6 @@ defmodule Api.V1 do
           # TODO: If resource is not an svg, return 415
           with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
             body
-            |> replace_in_string(%{
-              :title => recent_track["name"],
-              :artist => recent_track["artist"]["#text"],
-              :album => recent_track["album"]["#text"],
-              :cover_art => "data:image/jpeg;base64,#{cover_art}",
-              :image => "data:image/jpeg;base64,#{cover_art}",
-            }, "${_}")
-            |> String.trim()
-            |> String.replace("\r", "")
-            |> String.replace(~r{>\s+<}, "><")
           else
             _ -> nil
           end
@@ -153,8 +157,8 @@ defmodule Api.V1 do
             :title => recent_track["name"],
             :artist => recent_track["artist"]["#text"],
             :album => recent_track["album"]["#text"],
-            :playing => nowplaying == "true",
-            :cover_art => cover_art,
+            :playing => nowplaying,
+            :cover_art => Task.await(cover_art),
             :mime_type => "image/jpeg",
             :theme => params.theme,
             :art_radius => params.album_radius,
@@ -164,7 +168,19 @@ defmodule Api.V1 do
           }
         )
       else
-        _ -> svg
+        _ ->
+          resolved_cover_art = Task.await(cover_art)
+          svg
+          |> replace_in_string!(%{
+            :title => recent_track["name"],
+            :artist => recent_track["artist"]["#text"],
+            :album => recent_track["album"]["#text"],
+            :cover_art => "data:image/jpeg;base64,#{resolved_cover_art}",
+            :image => "data:image/jpeg;base64,#{resolved_cover_art}",
+          }, "${(.*?)}")
+          |> String.trim()
+          |> String.replace("\r", "")
+          |> String.replace(~r{>\s+<}, "><")
       end
 
       conn

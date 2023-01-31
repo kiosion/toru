@@ -33,6 +33,7 @@ defmodule Toru.Utils do
   end
 
   # Take in map of query params and map of expected as String.t() => String.t(), return map of atom => String.t()
+  @spec validate_query_params(map(), map()) :: map()
   def validate_query_params(params, expected) do
     params = Enum.into(params, %{}, fn {key, value} -> {String.to_atom(key), value} end)
 
@@ -73,25 +74,32 @@ defmodule Toru.Utils do
     end
   end
 
-  @spec replace_in_string(String.t(), map()) :: String.t()
+  @spec replace_in_string!(String.t(), map(), String.t()) :: String.t()
   @doc """
-  Replace placeholders in a string with values from a map, given an optional placeholder (default: {{_}})
+  Replace placeholders in a string with values from a map, given an optional placeholder (default: {{(.*?)}})
   """
-  def replace_in_string(string, replacements, pattern \\ "{{_}}") do
-    Enum.reduce(replacements, string, fn {key, value}, acc ->
-      key = key |> to_string
-      [p_start, p_end] = pattern |> String.split("_")
-
-      # If value is a nested map, then the placeholder should have the key to access in the nested map
-      # Example: {{placeholder["key"]}} -> value["key"]
-      case is_map(value) do
-        true ->
-          regex = ~r/#{p_start}#{key}\["(.*?)"\]#{p_end}/
-          Regex.replace(regex, acc, fn _, key -> Map.get(value, key) end)
-        _ ->
-          regex = ~r/#{p_start}#{key}#{p_end}/
-          Regex.replace(regex, acc, to_string(value))
-      end
-    end)
+  def replace_in_string!(string, replacements, pattern \\ "{{(.*?)}}") do
+    with {:ok, regex} <- Regex.compile("#{pattern}"),
+         nested_regex <- ~r/\["(.*?)"\]/ do
+      regex |> Regex.scan(string) |> Enum.reduce(string, fn match, acc ->
+        [full_match, key] = match
+        # Check if key is nested
+        if String.contains?(key, "[\"") do
+          nested_key = Regex.scan(nested_regex, key) |> List.first() |> List.last()
+          value = Map.get(replacements, String.replace(key, "[\"#{nested_key}\"]", "") |> String.to_atom())
+          acc |> String.replace("#{full_match}", "#{Map.get(value, nested_key)}")
+        else
+          atomized = key |> String.to_atom()
+          if Map.has_key?(replacements, atomized) do
+            acc |> String.replace("#{full_match}", "#{Map.get(replacements, atomized)}")
+          else
+            acc
+          end
+        end
+      end)
+    else
+      _ -> raise "Invalid pattern: #{pattern}"
+    end
   end
+
 end
