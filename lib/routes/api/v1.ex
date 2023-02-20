@@ -129,6 +129,14 @@ defmodule Api.V1 do
       :res => "svg",
     }
 
+  options "/:username" do
+    conn
+    |> put_resp_header("access-control-allow-methods", "GET, OPTIONS")
+    |> put_resp_header("access-control-allow-origin", "*")
+    |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers")
+    |> send_resp(200, "")
+  end
+
   get "/:username" do
     params = fetch_query_params(conn).query_params |> validate_query_params(default_params())
 
@@ -153,7 +161,10 @@ defmodule Api.V1 do
           :artist => recent_track["artist"]["#text"],
           :album => recent_track["album"]["#text"],
           :playing => nowplaying,
-          :cover_art => Task.await(cover_art),
+          :cover_art => %{
+            :mime_type => "image/jpeg",
+            :data => Task.await(cover_art)
+          }
         }
 
         conn
@@ -162,8 +173,9 @@ defmodule Api.V1 do
           |> put_resp_header("expires", "0")
           |> put_resp_header("content-type", "application/json")
           |> put_resp_header("access-control-allow-origin", "*")
+          |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers")
           |> send_resp(200, Poison.encode!(%{
-            :status => "ok",
+            :status => 200,
             :data => json_info
           }))
       else
