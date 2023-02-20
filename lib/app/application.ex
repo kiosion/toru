@@ -27,6 +27,7 @@ defmodule Toru.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, pid} ->
+        Toru.Cache.setup()
         Application.put_env(:toru, :started_at, {"STARTED_AT", "#{System.system_time(:millisecond)}", :int})
         Logger.info("Toru started on port #{Toru.Env.get!(:port)}")
         if Application.get_env(:toru, :lfm_token) == nil do
