@@ -91,19 +91,30 @@ defmodule Api.V1 do
   defp fetch_cover_art(url) do
     fallback = "" # Eventually, set a fallback image hash here
 
-    with {:ok, value} <- Cache.get(url) do
-      value
+    with {:ok, res} <- Cache.get(url) do
+      res
     else
       _ ->
-        try do with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
-            value = Base.encode64(body)
-            Cache.put(url, value, 24 * 60 * 60)
-            value
+        try do with {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <- HTTPoison.get(url) do
+            mime_type = headers
+              |> Enum.find(fn {k, _} -> k == "Content-Type" end)
+              |> case do
+                {_, v} -> v
+                _ -> "image/jpeg"
+              end
+
+            res = %{ :mime_type => mime_type, :data => Base.encode64(body) }
+            Cache.put(url, res, 24 * 60 * 60)
+            res
           else
-            {:error, _} -> fallback
+            {:error, e} ->
+              Logger.error("Error fetching cover art, HTTPoison error: #{inspect(e)}")
+              fallback
           end
         rescue
-          _ -> fallback
+          e ->
+            Logger.error("Error fetching cover art, rescued from: #{inspect(e)}")
+            fallback
         end
     end
   end
@@ -127,6 +138,7 @@ defmodule Api.V1 do
       :url => nil,
       :blur => nil,
       :res => "svg",
+      :cover_size => "large",
     }
 
   options "/:username" do
@@ -148,11 +160,24 @@ defmodule Api.V1 do
         |> fn s -> s == "true" end.()
 
       cover_art = Task.async(fn ->
-        recent_track
-          |> Map.get("image", [])
-          |> Enum.find(fn image -> image["size"] == "large" end)
-          |> Map.get("#text", "")
-          |> fetch_cover_art()
+        req_size = case params.cover_size do
+          "large" -> "large"
+          "medium" -> "medium"
+          "small" -> "small"
+          _ -> "large"
+        end
+
+        avail_images = recent_track |> Map.get("image", [])
+
+        Enum.find(avail_images, fn image ->
+          image["size"] == req_size
+        end)
+        |> case do
+          nil -> Enum.max_by(avail_images, & &1["size"])
+          image -> image
+        end
+        |> Map.get("#text", "")
+        |> fetch_cover_art()
       end)
 
       if params.res == "json" do
@@ -161,10 +186,9 @@ defmodule Api.V1 do
           :artist => recent_track["artist"]["#text"],
           :album => recent_track["album"]["#text"],
           :playing => nowplaying,
-          :cover_art => %{
-            :mime_type => "image/jpeg",
-            :data => Task.await(cover_art)
-          }
+          :cover_art => Task.await(cover_art),
+          :url => recent_track["url"],
+          :streamable => recent_track["streamable"] == "1",
         }
 
         conn
@@ -193,6 +217,8 @@ defmodule Api.V1 do
           _ -> nil
         end
 
+        %{ data: cover_art_data, mime_type: cover_art_mime_type } = Task.await(cover_art)
+
         svg = with nil <- svg do
           construct_svg(
             %{
@@ -200,8 +226,8 @@ defmodule Api.V1 do
               :artist => recent_track["artist"]["#text"],
               :album => recent_track["album"]["#text"],
               :playing => nowplaying,
-              :cover_art => Task.await(cover_art),
-              :mime_type => "image/jpeg",
+              :cover_art => cover_art_data,
+              :mime_type => cover_art_mime_type,
               :theme => params.theme,
               :art_radius => params.album_radius,
               :border_radius => params.border_radius,
@@ -211,14 +237,13 @@ defmodule Api.V1 do
           )
         else
           _ ->
-            resolved_cover_art = Task.await(cover_art)
             svg
             |> replace_in_string!(%{
               :title => recent_track["name"],
               :artist => recent_track["artist"]["#text"],
               :album => recent_track["album"]["#text"],
-              :cover_art => "data:image/jpeg;base64,#{resolved_cover_art}",
-              :image => "data:image/jpeg;base64,#{resolved_cover_art}",
+              :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+              :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
             }, "${(.*?)}")
             |> String.trim()
             |> String.replace("\r", "")
