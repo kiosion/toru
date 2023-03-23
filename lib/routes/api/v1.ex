@@ -84,7 +84,7 @@ defmodule Api.V1 do
       raise "No username specified"
     end
 
-    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
+    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username |> URI.encode_www_form}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
   end
 
   @spec fetch_cover_art(String.t()) :: binary
@@ -204,7 +204,16 @@ defmodule Api.V1 do
           }))
       else
         # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
-        svgUrl = if params.url != nil or params.svg_url != nil do params.url || params.svg_url end
+        svgUrl = with true <- params.url != nil do
+          params.url
+        else
+          false -> with true <- params.svg_url != nil do
+            params.svg_url
+          else
+            false -> nil
+          end
+          _ -> nil
+        end
 
         svg = case svgUrl do
           url when is_binary(url) ->
@@ -244,10 +253,7 @@ defmodule Api.V1 do
               :album => recent_track["album"]["#text"],
               :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
               :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
-            }, "${(.*?)}")
-            |> String.trim()
-            |> String.replace("\r", "")
-            |> String.replace(~r{>\s+<}, "><")
+            }, "\\${(.*?)}")
         end
 
         conn
