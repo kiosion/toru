@@ -145,7 +145,7 @@ defmodule Api.V1 do
     conn
     |> put_resp_header("access-control-allow-methods", "GET, OPTIONS")
     |> put_resp_header("access-control-allow-origin", "*")
-    |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers")
+    |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers, access-control-allow-origin, accept")
     |> send_resp(200, "")
   end
 
