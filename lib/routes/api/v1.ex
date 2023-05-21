@@ -197,7 +197,7 @@ defmodule Api.V1 do
           |> put_resp_header("expires", "0")
           |> put_resp_header("content-type", "application/json")
           |> put_resp_header("access-control-allow-origin", "*")
-          |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers")
+          |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers, access-control-allow-origin, accept")
           |> send_resp(200, Poison.encode!(%{
             :status => 200,
             :data => json_info
