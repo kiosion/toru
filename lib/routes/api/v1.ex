@@ -6,17 +6,16 @@ defmodule Api.V1 do
 
   require Logger
 
-  @themes get_asset(:themes)
+  @themes get_asset :themes
 
-  plug(:match)
+  plug :match
 
-  plug(:fetch_query_params)
+  plug :fetch_query_params
 
-  plug(Plug.Parsers,
+  plug Plug.Parsers,
     parsers: [:json],
     pass: ["application/json"],
     json_decoder: Poison
-  )
 
   plug(:dispatch)
 
@@ -40,7 +39,7 @@ defmodule Api.V1 do
   @doc """
   Returns a constructed SVG string based on given parameters
   """
-  def construct_svg(params) do
+  def construct_svg params do
     values = %{
       :title => params.title |> html_encode(),
       :artist => params.artist |> html_encode(),
@@ -79,7 +78,7 @@ defmodule Api.V1 do
   end
 
   @spec lfm_url!(String.t()) :: String.t()
-  defp lfm_url!(username) do
+  defp lfm_url! username do
     if username == nil do
       raise "No username specified"
     end
@@ -88,14 +87,14 @@ defmodule Api.V1 do
   end
 
   @spec fetch_cover_art(String.t()) :: binary
-  defp fetch_cover_art(url) do
+  defp fetch_cover_art url do
     fallback = "" # Eventually, set a fallback image hash here
 
-    with {:ok, res} <- Cache.get(url) do
+    with {:ok, res} <- Cache.get url do
       res
     else
       _ ->
-        try do with {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <- HTTPoison.get(url) do
+        try do with {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <- HTTPoison.get url do
             mime_type = headers
               |> Enum.find(fn {k, _} -> k == "Content-Type" end)
               |> case do
@@ -104,42 +103,146 @@ defmodule Api.V1 do
               end
 
             res = %{ :mime_type => mime_type, :data => Base.encode64(body) }
-            Cache.put(url, res, 24 * 60 * 60)
+            Cache.put url, res, 24 * 60 * 60
             res
           else
             {:error, e} ->
-              Logger.error("Error fetching cover art, HTTPoison error: #{inspect(e)}")
+              Logger.error "Error fetching cover art, HTTPoison error: #{inspect(e)}"
               fallback
           end
         rescue
           e ->
-            Logger.error("Error fetching cover art, rescued from: #{inspect(e)}")
+            Logger.error "Error fetching cover art, rescued from: #{inspect(e)}"
             fallback
         end
     end
   end
 
   @spec set_headers(Plug.Conn.t()) :: Plug.Conn.t()
-  defp set_headers(conn), do:
+  defp set_headers conn do
     conn
-    |> put_resp_header("content-type", "image/svg+xml")
-    |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
-    |> put_resp_header("pragma", "no-cache")
-    |> put_resp_header("expires", "0")
+      |> put_resp_header("content-type", "image/svg+xml")
+      |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
+      |> put_resp_header("access-control-allow-origin", "*")
+      |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers, access-control-allow-origin, accept")
+      |> put_resp_header("pragma", "no-cache")
+      |> put_resp_header("expires", "0")
+  end
 
   @spec default_params() :: map()
-  defp default_params(), do:
+  defp default_params, do:
     %{
       :theme => "light",
       :border_width => "1.6",
       :border_radius => "22",
-      :album_radius => "16",
+      :album_radius => "18",
       :svg_url => nil,
       :url => nil,
       :blur => nil,
       :res => "svg",
       :cover_size => "large",
     }
+
+  defp start_cover_art_task params, recent_track do
+    Task.async fn ->
+      req_size = case params.cover_size do
+        "large" -> "large"
+        "medium" -> "medium"
+        "small" -> "small"
+        _ -> "large"
+      end
+
+      avail_images = recent_track |> Map.get("image", [])
+
+      Enum.find(avail_images, fn image ->
+        image["size"] == req_size
+      end)
+      |> case do
+        nil -> Enum.max_by(avail_images, & &1["size"])
+        image -> image
+      end
+      |> Map.get("#text", "")
+      |> fetch_cover_art()
+    end
+  end
+
+  defp get_svg params, recent_track do
+    nowplaying = recent_track
+      |> Map.get("@attr", %{})
+      |> Map.get("nowplaying", "false")
+      |> fn s -> s == "true" end.()
+
+    cover_art = start_cover_art_task params, recent_track
+
+    # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
+    svgUrl = with true <- params.url != nil do
+      params.url
+    else
+      false -> with true <- params.svg_url != nil do
+        params.svg_url
+      else
+        false -> nil
+      end
+      _ -> nil
+    end
+
+    svg = case svgUrl do
+      url when is_binary url ->
+        # TODO: If resource is not an svg, return 415
+        with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get url do
+          body
+        else
+          _ -> nil
+        end
+      _ -> nil
+    end
+
+    %{ data: cover_art_data, mime_type: cover_art_mime_type } = Task.await cover_art
+
+    svg = with nil <- svg do
+      construct_svg %{
+        :title => recent_track["name"],
+        :artist => recent_track["artist"]["#text"],
+        :album => recent_track["album"]["#text"],
+        :playing => nowplaying,
+        :cover_art => cover_art_data,
+        :mime_type => cover_art_mime_type,
+        :theme => params.theme,
+        :art_radius => params.album_radius,
+        :border_radius => params.border_radius,
+        :border_width => params.border_width,
+        :blur => params.blur
+      }
+    else
+      _ ->
+        svg
+        |> replace_in_string!(%{
+          :title => recent_track["name"],
+          :artist => recent_track["artist"]["#text"],
+          :album => recent_track["album"]["#text"],
+          :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+          :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+        }, ~r/\${(.*?)}/u)
+    end
+
+    svg
+  end
+
+  defp get_json params, recent_track do
+    cover_art = start_cover_art_task params, recent_track
+
+    %{ data: cover_art_data, mime_type: cover_art_mime_type } = Task.await cover_art
+
+    %{
+      "name" => recent_track["name"],
+      "album" => recent_track["album"]["#text"],
+      "artist" => recent_track["artist"]["#text"],
+      "nowplaying" => recent_track["@attr"]["nowplaying"],
+      "cover_art" => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+      "url" => recent_track["url"],
+      "streamable" => recent_track["streamable"] == "1",
+    }
+  end
 
   options "/:username" do
     conn
@@ -154,107 +257,18 @@ defmodule Api.V1 do
 
     with {:ok, res}         <- fetch_res(lfm_url!(username)),
          [recent_track | _] <- res |> Map.get("recenttracks", []) |> Map.get("track", []) do
-      nowplaying = recent_track
-        |> Map.get("@attr", %{})
-        |> Map.get("nowplaying", "false")
-        |> fn s -> s == "true" end.()
-
-      cover_art = Task.async(fn ->
-        req_size = case params.cover_size do
-          "large" -> "large"
-          "medium" -> "medium"
-          "small" -> "small"
-          _ -> "large"
-        end
-
-        avail_images = recent_track |> Map.get("image", [])
-
-        Enum.find(avail_images, fn image ->
-          image["size"] == req_size
-        end)
-        |> case do
-          nil -> Enum.max_by(avail_images, & &1["size"])
-          image -> image
-        end
-        |> Map.get("#text", "")
-        |> fetch_cover_art()
-      end)
-
       if params.res == "json" do
-        json_info = %{
-          :title => recent_track["name"],
-          :artist => recent_track["artist"]["#text"],
-          :album => recent_track["album"]["#text"],
-          :playing => nowplaying,
-          :cover_art => Task.await(cover_art),
-          :url => recent_track["url"],
-          :streamable => recent_track["streamable"] == "1",
-        }
+        json_info = get_json params, recent_track
 
         conn
-          |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
-          |> put_resp_header("pragma", "no-cache")
-          |> put_resp_header("expires", "0")
+          |> set_headers()
           |> put_resp_header("content-type", "application/json")
-          |> put_resp_header("access-control-allow-origin", "*")
-          |> put_resp_header("access-control-allow-headers", "content-type, access-control-allow-headers, access-control-allow-origin, accept")
           |> send_resp(200, Poison.encode!(%{
             :status => 200,
             :data => json_info
           }))
       else
-        # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
-        svgUrl = with true <- params.url != nil do
-          params.url
-        else
-          false -> with true <- params.svg_url != nil do
-            params.svg_url
-          else
-            false -> nil
-          end
-          _ -> nil
-        end
-
-        svg = case svgUrl do
-          url when is_binary(url) ->
-            # TODO: If resource is not an svg, return 415
-            with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(url) do
-              body
-            else
-              _ -> nil
-            end
-          _ -> nil
-        end
-
-        %{ data: cover_art_data, mime_type: cover_art_mime_type } = Task.await(cover_art)
-
-        svg = with nil <- svg do
-          construct_svg(
-            %{
-              :title => recent_track["name"],
-              :artist => recent_track["artist"]["#text"],
-              :album => recent_track["album"]["#text"],
-              :playing => nowplaying,
-              :cover_art => cover_art_data,
-              :mime_type => cover_art_mime_type,
-              :theme => params.theme,
-              :art_radius => params.album_radius,
-              :border_radius => params.border_radius,
-              :border_width => params.border_width,
-              :blur => params.blur
-            }
-          )
-        else
-          _ ->
-            svg
-            |> replace_in_string!(%{
-              :title => recent_track["name"],
-              :artist => recent_track["artist"]["#text"],
-              :album => recent_track["album"]["#text"],
-              :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
-              :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
-            }, "\\${(.*?)}")
-        end
+        svg = get_svg params, recent_track
 
         conn
           |> set_headers()

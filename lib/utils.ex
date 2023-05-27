@@ -25,25 +25,29 @@ defmodule Toru.Utils do
 
   @spec html_encode(String.t()) :: String.t()
   def html_encode(string) do
-    string
-    |> String.replace("&", "&amp;")
-    |> String.replace("<", "&lt;")
-    |> String.replace(">", "&gt;")
-    |> String.replace("\"", "&quot;")
-    |> String.replace("'", "&apos;")
+    replacements = [
+      %{"&" => "&amp;"},
+      %{"<" => "&lt;"},
+      %{">" => "&gt;"},
+      %{"\"" => "&quot;"},
+      %{"'" => "&apos;"}
+    ]
+
+    Enum.reduce(replacements, string, fn replacement, acc ->
+      Map.keys(replacement)
+      |> Enum.reduce(acc, fn key, acc -> String.replace(acc, key, Map.get(replacement, key)) end)
+    end)
   end
 
-  # Take in map of query params and map of expected as String.t() => String.t(), return map of atom => String.t()
   @spec validate_query_params(map(), map()) :: map()
+  @doc """
+  Take in map of query params and map of expected as `String.t() => String.t()`, return map of `atom => String.t()`
+  """
   def validate_query_params(params, expected) do
-    params = Enum.into(params, %{}, fn {key, value} -> {String.to_atom(key), value} end)
+    atomized_params = Enum.into(params, %{}, fn {key, value} -> {String.to_atom(key), value} end)
 
     Enum.reduce(expected, %{}, fn {key, default}, acc ->
-      if Map.has_key?(params, key) do
-        Map.put(acc, key, params[key])
-      else
-        Map.put(acc, key, default)
-      end
+      Map.put(acc, key, Map.get(atomized_params, key, default))
     end)
   end
 
@@ -82,32 +86,30 @@ defmodule Toru.Utils do
     end
   end
 
-  @spec replace_in_string!(String.t(), map(), String.t()) :: String.t()
+  @replace_in_str_pattern_regex ~r/{{(.*?)}}/u
+  @replace_in_str_nested_regex ~r/\["(.*?)"\]/u
+
+  @spec replace_in_string!(String.t(), map(), Regex.t() | nil) :: String.t()
   @doc """
-  Replace placeholders in a string with values from a map, given an optional placeholder (default: {{(.*?)}})
+  Replace placeholders in a string with values from a map, given an optional placeholder (default: `{{(.*?)}}`)
   """
-  def replace_in_string!(string, replacements, pattern \\ "{{(.*?)}}") do
-    with {:ok, regex} <- Regex.compile("#{pattern}"),
-         nested_regex <- ~r/\["(.*?)"\]/ do
-      regex |> Regex.scan(string) |> Enum.reduce(string, fn match, acc ->
-        [full_match, key] = match
-        # Check if key is nested
-        if String.contains?(key, "[\"") do
-          nested_key = Regex.scan(nested_regex, key) |> List.first() |> List.last()
-          value = Map.get(replacements, String.replace(key, "[\"#{nested_key}\"]", "") |> String.to_atom())
-          acc |> String.replace("#{full_match}", "#{Map.get(value, nested_key)}")
-        else
-          atomized = key |> String.to_atom()
-          if Map.has_key?(replacements, atomized) do
-            acc |> String.replace("#{full_match}", "#{Map.get(replacements, atomized)}")
-          else
-            acc
-          end
-        end
-      end)
-    else
-      _ -> raise "Invalid pattern: #{pattern}"
-    end
+  def replace_in_string!(string, replacements, pattern \\ @replace_in_str_pattern_regex) do
+    Enum.reduce(Regex.scan(pattern, string), string, fn match, acc ->
+      [full_match, key] = match
+
+      # Check if key is nested
+      if String.contains?(key, "[\"") do
+        nested_key = Regex.scan(@replace_in_str_nested_regex, key) |> List.first() |> List.last()
+        base_key = key |> String.replace("[\"#{nested_key}\"]", "") |> String.to_atom()
+        value = Map.get(replacements, base_key, "")
+        new_value = Map.get(value, nested_key, "")
+        String.replace(acc, full_match, to_string(new_value))
+      else
+        atomized_key = String.to_atom(key)
+        replacement = Map.get(replacements, atomized_key, "")
+        String.replace(acc, full_match, to_string(replacement))
+      end
+    end)
   end
 
 end
