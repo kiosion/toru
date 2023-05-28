@@ -4,6 +4,12 @@ DOCKER_EXISTS := $(shell docker --help > /dev/null 2>&1; echo $$?)
 
 PORT ?= 3000
 
+install: SHELL:=/bin/bash
+install:
+	@mix local.hex --if-missing --force > /dev/null
+	@mix local.rebar --force > /dev/null
+	@mix deps.get > /dev/null
+
 dev: SHELL:=/bin/bash
 dev: # Run the development environment
 	@bash -c "printf \"Building dependencies\r\" &&\
@@ -35,10 +41,10 @@ else
 endif
 
 test: SHELL:=/bin/bash
+test: install
 test: # Run the mix test suite
-	@mix deps.get > /dev/null
-	@mix deps.compile --only=test > /dev/null
-	@source ./.env || true && LFM_TOKEN=$$LFM_TOKEN mix test
+	@mix deps.compile --only=test
+	@. .env && LFM_TOKEN=$$LFM_TOKEN MIX_ENV=test mix test
 
 clean: SHELL:=/bin/bash
 clean: # Remove unused dirs
