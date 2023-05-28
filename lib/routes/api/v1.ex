@@ -234,11 +234,14 @@ defmodule Api.V1 do
     %{ data: cover_art_data, mime_type: cover_art_mime_type } = Task.await cover_art
 
     %{
-      "name" => recent_track["name"],
+      "title" => recent_track["name"],
       "album" => recent_track["album"]["#text"],
       "artist" => recent_track["artist"]["#text"],
-      "nowplaying" => recent_track["@attr"]["nowplaying"],
-      "cover_art" => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+      "playing" => recent_track["@attr"]["nowplaying"] == "true",
+      "cover_art" => %{
+        "data" => cover_art_data,
+        "mime_type" => cover_art_mime_type,
+      },
       "url" => recent_track["url"],
       "streamable" => recent_track["streamable"] == "1",
     }
