@@ -51,8 +51,17 @@ defmodule Toru.Utils do
     end)
   end
 
+  @spec lfm_url!(String.t()) :: String.t()
+  def lfm_url! username do
+    if username == nil do
+      raise "No username specified"
+    end
+
+    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username |> URI.encode_www_form}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
+  end
+
   @spec fetch_res(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
-  def fetch_res(url) do
+  def fetch_res url do
     with {:ok, value} <- Cache.get(url) do
       {:ok, value}
     else
@@ -75,6 +84,26 @@ defmodule Toru.Utils do
           _ ->
             {:error, %{:code => 500, :reason => "Unknown error"}}
         end
+    end
+  end
+
+  def fetch_res url, :no_cache do
+    case HTTPoison.get(url) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        value = Poison.decode!(body)
+        {:ok, value}
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        {:error, %{:code => 404, :reason => "User not found"}}
+      {:ok, %HTTPoison.Response{status_code: 400}} ->
+        {:error, %{:code => 400, :reason => "Invalid request"}}
+      {:ok, %HTTPoison.Response{status_code: 403}} ->
+        {:error, %{:code => 403, :reason => "Invalid API key"}}
+      {:ok, %HTTPoison.Response{status_code: 429}} ->
+        {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        {:error, %{:code => 500, :reason => reason}}
+      _ ->
+        {:error, %{:code => 500, :reason => "Unknown error"}}
     end
   end
 

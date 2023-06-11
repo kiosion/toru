@@ -77,15 +77,6 @@ defmodule Api.V1 do
     |> String.replace(~r{>\s+<}, "><")
   end
 
-  @spec lfm_url!(String.t()) :: String.t()
-  defp lfm_url! username do
-    if username == nil do
-      raise "No username specified"
-    end
-
-    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username |> URI.encode_www_form}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
-  end
-
   @spec fetch_cover_art(String.t()) :: binary
   defp fetch_cover_art url do
     fallback = "" # Eventually, set a fallback image hash here
@@ -145,11 +136,16 @@ defmodule Api.V1 do
 
   defp start_cover_art_task params, recent_track do
     Task.async fn ->
-      req_size = case params.cover_size do
-        "large" -> "large"
-        "medium" -> "medium"
-        "small" -> "small"
-        _ -> "large"
+      req_size = with true <- params != nil,
+           true <- params != %{} do
+        case params.cover_size do
+          "large" -> "large"
+          "medium" -> "medium"
+          "small" -> "small"
+          _ -> "large"
+        end
+      else
+        _ -> "medium"
       end
 
       avail_images = recent_track |> Map.get("image", [])
@@ -166,7 +162,7 @@ defmodule Api.V1 do
     end
   end
 
-  defp get_svg params, recent_track do
+  def get_svg params, recent_track do
     nowplaying = recent_track
       |> Map.get("@attr", %{})
       |> Map.get("nowplaying", "false")
@@ -228,7 +224,7 @@ defmodule Api.V1 do
     svg
   end
 
-  defp get_json params, recent_track do
+  def get_json params, recent_track do
     cover_art = start_cover_art_task params, recent_track
 
     %{ data: cover_art_data, mime_type: cover_art_mime_type } = Task.await cover_art
