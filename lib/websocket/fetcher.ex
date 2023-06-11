@@ -2,9 +2,12 @@ defmodule Toru.WS.TrackFetcher do
   use Toru.Utils
   use GenServer
 
+  require Logger
+
   import Api.V1, only: [get_json: 2]
 
   def start_link username do
+    Logger.info "Starting fetcher for #{username}"
     GenServer.start_link __MODULE__, username, name: via_tuple(username)
   end
 
@@ -33,7 +36,7 @@ defmodule Toru.WS.TrackFetcher do
   end
 
   def handle_cast {:unsubscribe, pid}, state do
-    IO.puts "Unsubscribing #{inspect(pid)} from #{inspect(state.username)}"
+    Logger.info "Unsubscribing #{inspect(pid)} from #{inspect(state.username)}"
     subscribers = List.delete state.subscribers, pid
 
     if subscribers == [] do
@@ -61,7 +64,7 @@ defmodule Toru.WS.TrackFetcher do
   end
 
   def handle_info :stop, state do
-    IO.puts "Stopping fetcher for #{inspect(state.username)}"
+    Logger.info "Stopping fetcher for #{inspect(state.username)}"
     Toru.WS.TrackFetcherManager.stop_fetcher state.username
     {:stop, :normal, state}
   end
@@ -85,6 +88,7 @@ defmodule Toru.WS.TrackFetcher do
   defp fetch_current_track username do
     with {:ok, res}         <- fetch_res(lfm_url!(username), :no_cache),
          [recent_track | _] <- res |> Map.get("recenttracks", []) |> Map.get("track", []) do
+      # TODO: This response should be better structured - ideally wrapped in "data" or something
       Poison.encode!(get_json(%{}, recent_track))
     else
       _ -> nil

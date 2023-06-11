@@ -1,7 +1,7 @@
 defmodule Toru.WS.ConnectionManager do
   use GenServer
 
-  @maxConnections 50
+  @maxConnections 20
 
   def start_link _args do
     GenServer.start_link __MODULE__, %{}, name: __MODULE__

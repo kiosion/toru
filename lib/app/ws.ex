@@ -10,15 +10,14 @@ defmodule Toru.Router.WS do
       req,
       %{username: username},
       %{
-        # 1 min w/o a message from the client and the connection is closed
-        idle_timeout: 60_000,
-        max_frame_size: 1_000_000, # 1 MB, clients shouldn't have any reason to send more than this
+        idle_timeout: 60_000, # 1 minute
+        max_frame_size: 1_000_000, # 1 MB
       }
     }
   end
 
   def websocket_init state do
-    Logger.info "new conection for #{state.username}"
+    Logger.info "New conection for #{inspect(self())}-#{state.username}"
     Process.flag :trap_exit, true
     case Toru.WS.ConnectionManager.increment(state.username) do
       :ok ->
@@ -46,7 +45,6 @@ defmodule Toru.Router.WS do
   end
 
   def websocket_info({:fetch, fetch}, state) do
-    # fetch_json = Poison.encode!(fetch)
     {:reply, {:text, fetch}, state}
   end
 
