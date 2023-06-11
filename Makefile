@@ -44,7 +44,7 @@ test: SHELL:=/bin/bash
 test: install
 test: # Run the mix test suite
 	@mix deps.compile --only=test
-	@. .env || true && LFM_TOKEN=$$LFM_TOKEN MIX_ENV=test mix test
+	@source ./.env || true && LFM_TOKEN=$$LFM_TOKEN MIX_ENV=test mix test
 
 clean: SHELL:=/bin/bash
 clean: # Remove unused dirs

@@ -48,7 +48,7 @@ defmodule Toru.Application do
         Application.put_env :toru, :started_at, {"STARTED_AT", "#{System.system_time(:millisecond)}", :int}
         Logger.info "Toru started on port #{Toru.Env.get!(:port)}"
 
-        if Toru.Env.get!(:lfm_token) == nil do
+        if Toru.Env.get!(:lfm_token) == nil || Toru.Env.get!(:lfm_token) == "" do
           Logger.warn("Last.fm API token not set.")
         end
 

@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   workflow_call:
   push:
-    paths:
-      - 'mix.exs'
     branches:
       - main
 
@@ -16,6 +14,7 @@ concurrency:
 jobs:
   test:
     name: Tests
+    secrets: inherit
     uses: ./.github/workflows/test.yml
   release:
     needs: test

@@ -25,7 +25,4 @@ jobs:
           mix local.hex --force --if-needed
           mix local.rebar --force --if-needed
       - name: Run unit tests
-        env:
-          MIX_ENV: test
-          LFM_TOKEN: ${{ secrets.LFM_TOKEN }}
-        run: make test
+        run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} MIX_ENV=test make test
