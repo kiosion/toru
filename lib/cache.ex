@@ -3,6 +3,8 @@ defmodule Toru.Cache do
   A simple ETS-based cache to store LFM data and images for short periods of time.
   """
 
+  require Logger
+
   defmacro __using__(_opts) do
     quote do
       alias Toru.Cache, as: Cache
@@ -25,14 +27,14 @@ defmodule Toru.Cache do
     with [{_key, value, expires_at}] <- entry,
          true <- :erlang.system_time(:second) < expires_at
     do
-      IO.puts("Cache hit for #{key}")
+      Logger.info "Cache hit for #{key}"
       {:ok, value}
     else
       [] ->
-        IO.puts("Cache miss for #{key}")
+        Logger.info "Cache miss for #{key}"
         nil # key not found in ETS
       false -> # key found but expired
-        IO.puts("Cache miss for #{key} (expired)")
+        Logger.info "Cache miss for #{key} (expired)"
         :ets.delete(:cache, key)
         nil
     end

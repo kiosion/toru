@@ -2,10 +2,9 @@ defmodule Router.Api do
   use Plug.Router
   use Toru.Utils
 
-  # Current API vers
-  forward("/v1", to: Api.V1)
+  forward "/v1", to: Api.V1
 
-  plug(:match)
+  plug :match
 
   plug(Plug.Parsers,
     parsers: [:json],
@@ -13,7 +12,7 @@ defmodule Router.Api do
     json_decoder: Poison
   )
 
-  plug(:dispatch)
+  plug :dispatch
 
   match "/v:any" do
     conn |> json_response(400, %{status: 400, message: "Bad Request", detail: "Invalid API version specified"})
