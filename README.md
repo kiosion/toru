@@ -16,6 +16,32 @@ Simply add the following snippet to your Github profile readme (or anywhere else
 <img src="https://toru.kio.dev/api/v1/{your_lfm_username}" alt="Last.fm Activity" />
 ```
 
+You can append `?res=json` to get a JSON response:
+```
+GET https://toru.kio.dev/api/v1/{your_lfm_username}?res=json
+->
+{
+  status: 200,
+  data: {
+    url: "https://last.fm/music/X",
+    title: "X",
+    streamable: false,
+    playing: true,
+    cover_art: {
+      mime_type: "image/png",
+      data: "X"
+    },
+    artist: "X",
+    album: "X"
+  }
+}
+```
+
+You can also connect to the Websocket endpoint - recieved frames will be of the "data" field above. Minute-interval pings are required to stay connected.
+```
+wss://toru.kio.dev/api/v1/ws/{your_lfm_username}
+```
+
 ## Options ⚙️
 Toru has a few parameters you can customize through URL query strings:
 
@@ -32,9 +58,6 @@ The border radius of the embed can be specified as an integer with `border_radiu
 
 #### Cover radius
 The border radius of the album art can be specified as an integer with `cover_radius=<int>`
-
-#### Response type
-There are two response types: 'json' for the raw JSON response, or 'embed' / unspecified for the embed (default). These can be specified as a string with `res=<str>`
 
 #### Blurred background
 You can pass `blur` as a query param to enable a blurred background:
