@@ -64,9 +64,9 @@ defmodule Toru.Assets do
         "accent" => "#81A1C1"
       },
       "monokai" => %{
-	"background" => "#272822",
-	"text" => "#F1F1EB",
-	"accent" => "#EB1F6A"
+        "background" => "#272822",
+        "text" => "#F1F1EB",
+        "accent" => "#EB1F6A"
       }
     }
 
