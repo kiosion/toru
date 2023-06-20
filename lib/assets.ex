@@ -31,8 +31,8 @@ defmodule Toru.Assets do
   end
 
   @spec themes :: %{String.t() => %{String.t() => String.t()}}
-  def themes(), do:
-    %{
+  def themes(),
+    do: %{
       "light" => %{
         "background" => "#F4F5F7",
         "text" => "#242932",
@@ -71,8 +71,8 @@ defmodule Toru.Assets do
     }
 
   @spec base_svg :: String.t()
-  def base_svg(), do:
-    """
+  def base_svg(),
+    do: """
     <svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="{{width}}" height="{{height}}" style="overflow:hidden;border-radius:{{border_radius}}px;">
       <foreignObject width="{{width}}" height="{{height}}">
         <style>.bars{position: relative;display: inline-flex;justify-content: space-between;width: 12px;height: 9px;margin-right: 5px;}.bar{width: 2.5px;height: 100%;background-color: {{theme["accent"]}};border-radius: 10000px;transform-origin: bottom;animation:bounce 0.8s ease infinite alternate;content:'';}.bar:nth-of-type(2){animation-delay:-0.8s;}.bar:nth-of-type(3){animation-delay:-1.2s;}@keyframes bounce{0%{transform:scaleY(0.1);}100%{transform:scaleY(1);}}.bgBlur{transform:translate(-10%, -30%);z-index:0;backdrop-filter:blur(18px);filter:blur(18px);background-repeat:no-repeat;position:absolute;top:0;left:0;aspect-ratio:1/1;width:calc({{width}}px + 100px);}:not(.bgBlur){z-index:2;}</style>
@@ -93,14 +93,14 @@ defmodule Toru.Assets do
     """
 
   @spec background_image :: String.t()
-  def background_image(), do:
-    """
+  def background_image(),
+    do: """
     <div style=\"background-color:{{theme[\"background\"]}};position:absolute;top:-100px;left:-100px;width:600px;height:600px;opacity:0.6;filter:blur(18px);backdrop-filter:blur(18px);z-index:1;\"/><img src=\"data:{{mime_type}};base64,{{cover_art}}\" class=\"bgBlur\"/>
     """
 
   @spec playing_indicator :: String.t()
-  def playing_indicator(), do:
-    """
+  def playing_indicator(),
+    do: """
     <div class="bars"><span class="bar"/><span class="bar"/><span class="bar"/></div>
     """
 end

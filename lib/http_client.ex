@@ -8,11 +8,11 @@ end
 defmodule Toru.DefaultHTTPClient do
   @behaviour Toru.HTTPClient
 
-  def get url, headers do
-    HTTPoison.get url, headers
+  def get(url, headers) do
+    HTTPoison.get(url, headers)
   end
 
-  def get url do
-    HTTPoison.get url
+  def get(url) do
+    HTTPoison.get(url)
   end
 end

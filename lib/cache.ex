@@ -17,24 +17,28 @@ defmodule Toru.Cache do
       :public,
       :named_table,
       read_concurrency: true,
-      write_concurrency: true,
+      write_concurrency: true
     ])
+
     :ets.insert(:cache, {:__max_size, max_size, nil})
   end
 
   def get(key) do
     entry = :ets.lookup(:cache, key)
+
     if Toru.Env.get!(:env) == :test do
       nil
     else
       with [{_key, value, expires_at}] <- entry,
-          true <- :erlang.system_time(:second) < expires_at
-      do
+           true <- :erlang.system_time(:second) < expires_at do
         {:ok, value}
       else
         [] ->
-          nil # key not found in ETS
-        false -> # key found but expired
+          # key not found in ETS
+          nil
+
+        # key found but expired
+        false ->
           :ets.delete(:cache, key)
           nil
       end
@@ -78,7 +82,7 @@ defmodule Toru.Cache do
     :ets.safe_fixtable(:cache, false)
   end
 
-  defp purge(:'$end_of_table', _now) do
+  defp purge(:"$end_of_table", _now) do
     :ok
   end
 
@@ -86,6 +90,7 @@ defmodule Toru.Cache do
     case :ets.lookup(:cache, key) do
       [{_key, _value, expires_at}] when expires_at < now ->
         :ets.delete(:cache, key)
+
       _ ->
         :ok
     end

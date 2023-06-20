@@ -19,13 +19,15 @@ defmodule ToruApplicationTest do
   @opts Toru.Router.init([])
 
   test "GET /" do
-    conn = conn(:get, "/")
+    conn =
+      conn(:get, "/")
       |> Toru.Router.call(@opts)
 
     assert conn.state == :sent
-    assert conn.status == 403 # Shouldn't be able to GET non-api routes
+    # Shouldn't be able to GET non-api routes
+    assert conn.status == 403
 
-    body = Poison.decode! conn.resp_body
+    body = Poison.decode!(conn.resp_body)
 
     assert body["message"] == "Forbidden"
   end
@@ -33,7 +35,7 @@ defmodule ToruApplicationTest do
   test "GET svg res from API" do
     mock_response = %HTTPoison.Response{
       body: Poison.encode!(stub_json()),
-      status_code: 200,
+      status_code: 200
     }
 
     Toru.MockHTTPClient
@@ -49,8 +51,9 @@ defmodule ToruApplicationTest do
       end
     )
 
-    conn = conn(:get, "/api/v1/kiosion")
-    |> Toru.Router.call(@opts)
+    conn =
+      conn(:get, "/api/v1/kiosion")
+      |> Toru.Router.call(@opts)
 
     assert conn.state == :sent
     assert conn.status == 200
@@ -65,7 +68,7 @@ defmodule ToruApplicationTest do
   test "GET json res from API" do
     mock_response = %HTTPoison.Response{
       body: Poison.encode!(stub_json()),
-      status_code: 200,
+      status_code: 200
     }
 
     Toru.MockHTTPClient
@@ -81,8 +84,9 @@ defmodule ToruApplicationTest do
       end
     )
 
-    conn = conn(:get, "/api/v1/kiosion?res=json")
-    |> Toru.Router.call(@opts)
+    conn =
+      conn(:get, "/api/v1/kiosion?res=json")
+      |> Toru.Router.call(@opts)
 
     assert conn.state == :sent
     assert conn.status == 200
@@ -97,13 +101,13 @@ defmodule ToruApplicationTest do
         "streamable" => false,
         "cover_art" => %{
           "data" => "",
-          "mime_type" => "image/jpeg",
+          "mime_type" => "image/jpeg"
         },
-        "url" => "https://www.last.fm/music/Far+Out/_/Stay+With+Me+-+Extended+Mix",
+        "url" => "https://www.last.fm/music/Far+Out/_/Stay+With+Me+-+Extended+Mix"
       }
     }
 
-    body = Poison.decode! conn.resp_body
+    body = Poison.decode!(conn.resp_body)
 
     assert body == expected
   end
@@ -121,15 +125,18 @@ defmodule ToruApplicationTest do
             :image => [
               %{
                 :size => "small",
-                :"#text" => "https://lastfm.freetls.fastly.net/i/u/34s/fabaa95c087507009f663dd221f959a5.jpg"
+                :"#text" =>
+                  "https://lastfm.freetls.fastly.net/i/u/34s/fabaa95c087507009f663dd221f959a5.jpg"
               },
               %{
                 :size => "medium",
-                :"#text" => "https://lastfm.freetls.fastly.net/i/u/64s/fabaa95c087507009f663dd221f959a5.jpg"
+                :"#text" =>
+                  "https://lastfm.freetls.fastly.net/i/u/64s/fabaa95c087507009f663dd221f959a5.jpg"
               },
               %{
                 :size => "large",
-                :"#text" => "https://lastfm.freetls.fastly.net/i/u/174s/fabaa95c087507009f663dd221f959a5.jpg"
+                :"#text" =>
+                  "https://lastfm.freetls.fastly.net/i/u/174s/fabaa95c087507009f663dd221f959a5.jpg"
               }
             ],
             :mbid => "",
