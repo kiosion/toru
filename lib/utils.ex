@@ -4,9 +4,6 @@ defmodule Toru.Utils do
 
   import Plug.Conn, only: [put_resp_content_type: 2, send_resp: 3]
 
-  @spec __using__(any) ::
-          {:import, [{:column, 7} | {:context, Toru.Utils}, ...],
-           [{:__aliases__, [...], [...]}, ...]}
   defmacro __using__(_opts) do
     quote do
       import Toru.Utils
@@ -52,56 +49,73 @@ defmodule Toru.Utils do
   end
 
   @spec lfm_url!(String.t()) :: String.t()
-  def lfm_url! username do
+  def lfm_url!(username) do
     if username == nil do
       raise "No username specified"
     end
 
-    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username |> URI.encode_www_form}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
+    "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username |> URI.encode_www_form()}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
   end
 
-  @spec fetch_res(String.t()) :: {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
-  def fetch_res url do
+  @spec fetch_res(String.t()) ::
+          {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
+  def fetch_res(url) do
     with {:ok, value} <- Cache.get(url) do
       {:ok, value}
     else
       _ ->
-        case HTTPoison.get(url) do
+        http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
+
+        case http_client.get(url) do
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
             value = Poison.decode!(body)
             Cache.put(url, value, 30)
             {:ok, value}
+
           {:ok, %HTTPoison.Response{status_code: 404}} ->
             {:error, %{:code => 404, :reason => "User not found"}}
+
           {:ok, %HTTPoison.Response{status_code: 400}} ->
             {:error, %{:code => 400, :reason => "Invalid request"}}
+
           {:ok, %HTTPoison.Response{status_code: 403}} ->
             {:error, %{:code => 403, :reason => "Invalid API key"}}
+
           {:ok, %HTTPoison.Response{status_code: 429}} ->
             {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
+
           {:error, %HTTPoison.Error{reason: reason}} ->
             {:error, %{:code => 500, :reason => reason}}
+
           _ ->
             {:error, %{:code => 500, :reason => "Unknown error"}}
         end
     end
   end
 
-  def fetch_res url, :no_cache do
-    case HTTPoison.get(url) do
+  def fetch_res(url, :no_cache) do
+    http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
+
+    case http_client.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         value = Poison.decode!(body)
         {:ok, value}
+
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:error, %{:code => 404, :reason => "User not found"}}
+
       {:ok, %HTTPoison.Response{status_code: 400}} ->
         {:error, %{:code => 400, :reason => "Invalid request"}}
+
       {:ok, %HTTPoison.Response{status_code: 403}} ->
         {:error, %{:code => 403, :reason => "Invalid API key"}}
+
       {:ok, %HTTPoison.Response{status_code: 429}} ->
         {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
+
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, %{:code => 500, :reason => reason}}
+
       _ ->
         {:error, %{:code => 500, :reason => "Unknown error"}}
     end
@@ -140,5 +154,4 @@ defmodule Toru.Utils do
       end
     end)
   end
-
 end

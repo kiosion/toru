@@ -21,6 +21,7 @@ defmodule Toru.Env do
   defp resolve(value), do: value
 
   defp parse_int(value, _default) when is_integer(value), do: value
+
   defp parse_int(value, default) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} -> int

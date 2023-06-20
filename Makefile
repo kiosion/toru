@@ -43,8 +43,8 @@ endif
 test: SHELL:=/bin/bash
 test: install
 test: # Run the mix test suite
-	@mix deps.compile --only=test
-	@source ./.env || true && LFM_TOKEN=$$LFM_TOKEN MIX_ENV=test mix test
+	@mix deps.compile --only test
+	@MIX_ENV=test mix test
 
 clean: SHELL:=/bin/bash
 clean: # Remove unused dirs
