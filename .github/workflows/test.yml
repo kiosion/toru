@@ -10,6 +10,8 @@ jobs:
   mix-tests:
     name: Mix tests
     runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu22
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -17,7 +19,14 @@ jobs:
         uses: erlef/setup-elixir@v1
         with:
           otp-version: 24.0
-          elixir-version: 1.13.0
+          elixir-version: 1.14.0
+          rebar3-version: 3.14.3
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
       - name: Install Dependencies
         run: mix deps.get --only test --verbose
       - name: Install Hex & Rebar3
@@ -25,4 +34,4 @@ jobs:
           mix local.hex --force --if-needed
           mix local.rebar --force --if-needed
       - name: Run unit tests
-        run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} MIX_ENV=test make test
+        run: make test

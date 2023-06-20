@@ -33,21 +33,21 @@ defmodule Toru.MixProject do
   end
 
   defp deps do
+    depsl = [
+      {:ex_doc, "~> 0.14", only: :dev, runtime: false},
+      {:httpoison, "~> 2.0"},
+      {:mox, "~> 1.0", only: :test},
+      {:plug_cowboy, "~> 2.6"},
+      {:poison, "~> 4.0"},
+    ]
     case Mix.env() do
       :dev ->
-        [
-          {:plug_cowboy, "~> 2.6"},
-          {:poison, "~> 4.0"},
-          {:httpoison, "~> 2.0"},
+        depsl ++ [
           {:exsync, "~> 0.2"},
           {:file_system, "~> 0.2"}
         ]
       _ ->
-        [
-          {:plug_cowboy, "~> 2.6"},
-          {:poison, "~> 4.0"},
-          {:httpoison, "~> 2.0"}
-        ]
+        depsl
     end
   end
 

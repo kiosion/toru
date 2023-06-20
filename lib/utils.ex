@@ -4,9 +4,6 @@ defmodule Toru.Utils do
 
   import Plug.Conn, only: [put_resp_content_type: 2, send_resp: 3]
 
-  @spec __using__(any) ::
-          {:import, [{:column, 7} | {:context, Toru.Utils}, ...],
-           [{:__aliases__, [...], [...]}, ...]}
   defmacro __using__(_opts) do
     quote do
       import Toru.Utils
@@ -66,7 +63,8 @@ defmodule Toru.Utils do
       {:ok, value}
     else
       _ ->
-        case HTTPoison.get(url) do
+        http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
+        case http_client.get(url) do
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
             value = Poison.decode!(body)
             Cache.put(url, value, 30)
@@ -88,7 +86,8 @@ defmodule Toru.Utils do
   end
 
   def fetch_res url, :no_cache do
-    case HTTPoison.get(url) do
+    http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
+    case http_client.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         value = Poison.decode!(body)
         {:ok, value}

@@ -1,4 +1,4 @@
-FROM elixir:1.14-alpine AS builder
+FROM elixir:1.14.5-alpine AS builder
 
 RUN apk update && apk add bash openssl libgcc libstdc++ ncurses-libs
 
@@ -15,7 +15,7 @@ COPY config config
 
 RUN ./release -p $PORT -t $LFM_TOKEN
 
-FROM alpine:3.16.2 AS app
+FROM alpine:3.17.4 AS app
 
 RUN apk update && apk add bash openssl libgcc libstdc++ ncurses-libs
 

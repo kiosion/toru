@@ -14,7 +14,6 @@ concurrency:
 jobs:
   test:
     name: Tests
-    secrets: inherit
     uses: ./.github/workflows/test.yml
   release:
     needs: test
@@ -23,6 +22,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
       - name: Build for production
         run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} PORT=3000 make release
       - name: Run release

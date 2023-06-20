@@ -24,19 +24,20 @@ defmodule Toru.Cache do
 
   def get(key) do
     entry = :ets.lookup(:cache, key)
-    with [{_key, value, expires_at}] <- entry,
-         true <- :erlang.system_time(:second) < expires_at
-    do
-      Logger.info "Cache hit for #{key}"
-      {:ok, value}
+    if Toru.Env.get!(:env) == :test do
+      nil
     else
-      [] ->
-        Logger.info "Cache miss for #{key}"
-        nil # key not found in ETS
-      false -> # key found but expired
-        Logger.info "Cache miss for #{key} (expired)"
-        :ets.delete(:cache, key)
-        nil
+      with [{_key, value, expires_at}] <- entry,
+          true <- :erlang.system_time(:second) < expires_at
+      do
+        {:ok, value}
+      else
+        [] ->
+          nil # key not found in ETS
+        false -> # key found but expired
+          :ets.delete(:cache, key)
+          nil
+      end
     end
   end
 

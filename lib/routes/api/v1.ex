@@ -79,13 +79,13 @@ defmodule Api.V1 do
 
   @spec fetch_cover_art(String.t()) :: binary
   defp fetch_cover_art url do
-    fallback = "" # Eventually, set a fallback image hash here
+    fallback = %{:mime_type => "", :data => ""} # Eventually, set a fallback image hash here
 
     with {:ok, res} <- Cache.get url do
       res
     else
       _ ->
-        try do with {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <- HTTPoison.get url do
+        try do with {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <- Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get url do
             mime_type = headers
               |> Enum.find(fn {k, _} -> k == "Content-Type" end)
               |> case do
@@ -93,7 +93,7 @@ defmodule Api.V1 do
                 _ -> "image/jpeg"
               end
 
-            res = %{ :mime_type => mime_type, :data => Base.encode64(body) }
+            res = %{:mime_type => mime_type, :data => Base.encode64(body)}
             Cache.put url, res, 24 * 60 * 60
             res
           else
@@ -185,7 +185,7 @@ defmodule Api.V1 do
     svg = case svgUrl do
       url when is_binary url ->
         # TODO: If resource is not an svg, return 415
-        with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get url do
+        with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get url do
           body
         else
           _ -> nil
