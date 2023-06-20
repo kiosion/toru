@@ -21,6 +21,8 @@ jobs:
           otp-version: 24.0
           elixir-version: 1.14.0
           rebar3-version: 3.14.3
+      - name: Check formatting
+        run: mix format --check-formatted
       - name: Restore dependencies cache
         uses: actions/cache@v3
         with:
