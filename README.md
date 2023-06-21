@@ -43,7 +43,7 @@ wss://toru.kio.dev/api/v1/ws/{your_lfm_username}
 ```
 
 ## Options ⚙️
-Toru has a few parameters you can customize through URL query strings:
+Toru has a few parameters you can customize through query parameters:
 
 #### Theme
 The theme can be specified with `theme=<str>`. Available themes are:
@@ -52,20 +52,21 @@ The theme can be specified with `theme=<str>`. Available themes are:
 - dracula
 - nord
 - solarized
+- monokai
 
 #### Border radius
-The border radius of the embed can be specified as an integer with `border_radius=<int>`
+The border radius of the embed can be specified as an integer with `border_radius`
 
 #### Cover radius
-The border radius of the album art can be specified as an integer with `cover_radius=<int>`
+The border radius of the album art can be specified as an integer with `cover_radius`
 
 #### Blurred background
-You can pass `blur` as a query param to enable a blurred background:
+A blurred background can be enabled using `blur`:
 
 <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=nord&blur" alt="Last.fm Activity" width="380px" /></a>
 
 #### Border width
-The width of the borders can be specified (or removed by setting to '0') with `border_width=<int>`:
+The width of the borders can be specified (or removed by setting to '0') with `border_width`:
 
 <a href="https://last.fm/user/kiosion" target="_blank"><img src="https://toru.kio.dev/api/v1/kiosion?theme=dracula&border_width=0" alt="Last.fm Activity" width="380px" /></a>
 
@@ -78,12 +79,11 @@ You can alternativly specify a custom SVG asset with `svg_url=<str>`. Toru will 
 
 ## Building / Testing 🔨
 - Clone the repo
-- `mix local.hex --if-missing --force && mix local.rebar --if-missing --force` to install Hex and Rebar3
-- `mix deps.get` to pull & compile needed dependencies
+- Run `make install` to pull & compile needed dependencies
 
 ### Running
 - Make sure you have an `.env` file in the project root, with `LFM_TOKEN` set to your last.fm API key, and optionally `PORT` set to the port you want to run the dev server on (default is 4000)
-- `make dev` to run the dev server, or `make test` to run all unit tests.
+- Run `make dev` to run the livereload dev server, and `make test` to run all unit tests.
 
 ### Building a release
 - Environment variables `LFM_TOKEN` and `PORT` are required to build a release
