@@ -31,9 +31,5 @@ jobs:
           restore-keys: ${{ runner.os }}-mix-
       - name: Install Dependencies
         run: mix deps.get --only test --verbose
-      - name: Install Hex & Rebar3
-        run: |
-          mix local.hex --force --if-needed
-          mix local.rebar --force --if-needed
       - name: Run unit tests
         run: make test
