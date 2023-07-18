@@ -57,7 +57,7 @@ defmodule Toru.Application do
         Logger.info("Toru started on port #{Toru.Env.get!(:port)}")
 
         if Toru.Env.get!(:lfm_token) == nil || Toru.Env.get!(:lfm_token) == "" do
-          Logger.warn("Last.fm API token not set.")
+          Logger.warning("Last.fm API token not set.")
         end
 
         {:ok, pid}

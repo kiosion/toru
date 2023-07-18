@@ -54,7 +54,7 @@ defmodule Toru.Router.WS do
   end
 
   def websocket_info(message, state) do
-    Logger.warn({:unexpected_info, message})
+    Logger.warning({:unexpected_info, message})
     {:ok, state}
   end
 end

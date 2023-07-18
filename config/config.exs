@@ -1,3 +1,6 @@
-import Mix.Config
+import Config
 
-import_config "#{Mix.env()}.env.exs"
+config :toru,
+  env: config_env()
+
+import_config "#{config_env()}.env.exs"

@@ -1,6 +1,5 @@
-import Mix.Config
+import Config
 
 config :toru,
   port: {"PORT", "3333", :int},
-  lfm_token: {"LFM_TOKEN", :system},
-  env: :test
+  lfm_token: {"LFM_TOKEN", :system}
