@@ -4,6 +4,14 @@ defmodule Toru.Utils do
 
   import Plug.Conn, only: [put_resp_content_type: 2, send_resp: 3]
 
+  @html_replacements [
+    %{"&" => "&amp;"},
+    %{"<" => "&lt;"},
+    %{">" => "&gt;"},
+    %{"\"" => "&quot;"},
+    %{"'" => "&apos;"}
+  ]
+
   defmacro __using__(_opts) do
     quote do
       import Toru.Utils
@@ -20,21 +28,19 @@ defmodule Toru.Utils do
     |> send_resp(status, Poison.encode!(body))
   end
 
-  @spec html_encode(String.t()) :: String.t()
-  def html_encode(string) do
-    replacements = [
-      %{"&" => "&amp;"},
-      %{"<" => "&lt;"},
-      %{">" => "&gt;"},
-      %{"\"" => "&quot;"},
-      %{"'" => "&apos;"}
-    ]
+  @spec html_encode(String.t() | Map.t()) :: String.t() | Map.t()
+  def html_encode(string) when is_binary(string),
+    do:
+      Enum.reduce(@html_replacements, string, fn replacement, acc ->
+        Map.keys(replacement)
+        |> Enum.reduce(acc, fn key, acc -> String.replace(acc, key, Map.get(replacement, key)) end)
+      end)
 
-    Enum.reduce(replacements, string, fn replacement, acc ->
-      Map.keys(replacement)
-      |> Enum.reduce(acc, fn key, acc -> String.replace(acc, key, Map.get(replacement, key)) end)
-    end)
-  end
+  def html_encode(map) when is_map(map),
+    do:
+      Enum.reduce(map, %{}, fn {key, value}, acc ->
+        Map.put(acc, key, html_encode(value))
+      end)
 
   @spec validate_query_params(map(), map()) :: map()
   @doc """

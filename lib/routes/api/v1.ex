@@ -42,9 +42,9 @@ defmodule Api.V1 do
   """
   def construct_svg(params) do
     values = %{
-      :title => params.title |> html_encode(),
-      :artist => params.artist |> html_encode(),
-      :album => params.album |> html_encode(),
+      :title => params.title,
+      :artist => params.artist,
+      :album => params.album,
       :cover_art => params.cover_art,
       :mime_type => params.mime_type,
       :theme => Map.get(@themes, params.theme, @themes["light"]),
@@ -62,15 +62,19 @@ defmodule Api.V1 do
         end
     }
 
+    IO.puts("Values: #{inspect(values)}")
+
     values =
-      with true <- params.blur != nil do
-        values
-        |> Map.put(
-          :background_image,
-          get_asset(:background_image) |> replace_in_string!(values)
-        )
-      else
-        _ -> values |> Map.put(:background_image, "")
+      cond do
+        params.blur != nil ->
+          Map.put(
+            values,
+            :background_image,
+            get_asset(:background_image) |> replace_in_string!(values)
+          )
+
+        true ->
+          Map.put(values, :background_image, "")
       end
 
     get_asset(:base_svg)
@@ -147,16 +151,15 @@ defmodule Api.V1 do
   defp start_cover_art_task(params, recent_track) do
     Task.async(fn ->
       req_size =
-        with true <- params != nil,
-             true <- params != %{} do
+        if params != nil and params != %{} do
           case params.cover_size do
-            "large" -> "large"
-            "medium" -> "medium"
-            "small" -> "small"
+            "large" -> "extralarge"
+            "medium" -> "large"
+            "small" -> "medium"
             _ -> "large"
           end
         else
-          _ -> "medium"
+          "medium"
         end
 
       avail_images = recent_track |> Map.get("image", [])
@@ -178,49 +181,59 @@ defmodule Api.V1 do
       recent_track
       |> Map.get("@attr", %{})
       |> Map.get("nowplaying", "false")
-      |> (fn s -> s == "true" end).()
+      |> (fn status -> status == "true" or status == true end).()
 
     cover_art = start_cover_art_task(params, recent_track)
 
     # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
     svgUrl =
-      with true <- params.url != nil do
+      if params.url != nil do
         params.url
       else
-        false ->
-          with true <- params.svg_url != nil do
-            params.svg_url
-          else
-            false -> nil
-          end
-
-        _ ->
-          nil
+        params.svg_url
       end
 
     svg =
-      case svgUrl do
-        url when is_binary(url) ->
-          # TODO: If resource is not an svg, return 415
-          with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
-                 Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(url) do
-            body
-          else
-            _ -> nil
-          end
+      try do
+        with true <- is_binary(svgUrl),
+             {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <-
+               Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(svgUrl) do
+          headers
+          |> Enum.find(fn {k, _} -> k == "Content-Type" end)
+          |> case do
+            {_, v} ->
+              # TODO: If resource is not an svg, return 415
+              cond do
+                v == "image/svg+xml" -> body
+                v == "image/svg" -> body
+                true -> nil
+              end
 
-        _ ->
-          nil
+            _ ->
+              nil
+          end
+        else
+          _ -> nil
+        end
+      rescue
+        _ -> nil
       end
 
     %{data: cover_art_data, mime_type: cover_art_mime_type} = Task.await(cover_art)
 
+    values =
+      html_encode(%{
+        :title => recent_track["name"],
+        :artist => recent_track["artist"]["#text"],
+        :album => recent_track["album"]["#text"]
+      })
+
     svg =
-      with nil <- svg do
+      if svg == nil do
         construct_svg(%{
-          :title => recent_track["name"],
-          :artist => recent_track["artist"]["#text"],
-          :album => recent_track["album"]["#text"],
+          :title => values.title,
+          :artist => values.artist,
+          :album => values.album,
           :playing => nowplaying,
           :cover_art => cover_art_data,
           :mime_type => cover_art_mime_type,
@@ -231,18 +244,17 @@ defmodule Api.V1 do
           :blur => params.blur
         })
       else
-        _ ->
-          svg
-          |> replace_in_string!(
-            %{
-              :title => recent_track["name"],
-              :artist => recent_track["artist"]["#text"],
-              :album => recent_track["album"]["#text"],
-              :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
-              :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}"
-            },
-            ~r/\${(.*?)}/u
-          )
+        svg
+        |> replace_in_string!(
+          %{
+            :title => values.title,
+            :artist => values.artist,
+            :album => values.album,
+            :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+            :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}"
+          },
+          ~r/\${(.*?)}/u
+        )
       end
 
     svg
