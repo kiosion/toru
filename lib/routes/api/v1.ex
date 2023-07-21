@@ -62,8 +62,6 @@ defmodule Api.V1 do
         end
     }
 
-    IO.puts("Values: #{inspect(values)}")
-
     values =
       cond do
         params.blur != nil ->
