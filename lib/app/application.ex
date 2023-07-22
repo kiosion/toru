@@ -20,6 +20,9 @@ defmodule Toru.Application do
   @spec start(:normal | {:takeover, node()} | {:failover, node()}, any) ::
           {:error, any} | {:ok, pid}
   def start(_type, _args) do
+    port = port()
+    Logger.info("Starting Toru on port #{port}")
+
     children = [
       Toru.WS.ConnectionManager,
       {
@@ -32,7 +35,7 @@ defmodule Toru.Application do
         scheme: :http,
         plug: Toru.Router,
         options: [
-          port: Toru.Env.get!(:port),
+          port: port,
           dispatch: dispatch()
         ]
       },
@@ -64,6 +67,23 @@ defmodule Toru.Application do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp port() do
+    case Toru.Env.get!(:port) do
+      var when is_integer(var) ->
+        var
+
+      var when is_binary(var) ->
+        String.to_integer(var)
+
+      nil ->
+        Logger.warning("No port specified, falling back to 8080")
+        8080
+
+      var ->
+        raise "Invalid port data type: #{inspect(var)}"
     end
   end
 end
