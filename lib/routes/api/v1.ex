@@ -197,7 +197,7 @@ defmodule Api.V1 do
              {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <-
                Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(svgUrl) do
           headers
-          |> Enum.find(fn {k, _} -> k == "Content-Type" end)
+          |> Enum.find(fn {k, _} -> k == "Content-Type" or k == "content-type" end)
           |> case do
             {_, v} ->
               cond do
