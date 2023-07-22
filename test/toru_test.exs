@@ -85,8 +85,10 @@ defmodule ToruApplicationTest do
         cond do
           String.contains?(url, "format=json") ->
             {:ok, mock_lfm_response}
+
           String.contains?(url, "example.com") ->
             {:ok, mock_svg_response}
+
           true ->
             {:ok, %HTTPoison.Response{body: "", status_code: 200}}
         end
@@ -124,8 +126,10 @@ defmodule ToruApplicationTest do
         cond do
           String.contains?(url, "format=json") ->
             {:ok, mock_lfm_response}
+
           String.contains?(url, "example.com") ->
             {:ok, mock_svg_response}
+
           true ->
             {:ok, %HTTPoison.Response{body: "", status_code: 200}}
         end
