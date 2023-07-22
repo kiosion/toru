@@ -18,9 +18,9 @@ jobs:
       - name: Setup Elixir
         uses: erlef/setup-elixir@v1
         with:
-          otp-version: 24.0
-          elixir-version: 1.14.0
-          rebar3-version: 3.14.3
+          otp-version: 26
+          elixir-version: 1.15
+          rebar3-version: 3.22
       - name: Check formatting
         run: mix format --check-formatted
       - name: Restore dependencies cache
@@ -32,4 +32,6 @@ jobs:
       - name: Install Dependencies
         run: mix deps.get --only test --verbose
       - name: Run unit tests
-        run: make test
+        run: mix test
+        env:
+          MIX_ENV: test
