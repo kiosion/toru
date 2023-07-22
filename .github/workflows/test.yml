@@ -19,8 +19,8 @@ jobs:
         uses: erlef/setup-elixir@v1
         with:
           otp-version: 26
-          elixir-version: 1.14
-          rebar3-version: 3.14.3
+          elixir-version: 1.15
+          rebar3-version: 3.22
       - name: Check formatting
         run: mix format --check-formatted
       - name: Restore dependencies cache
