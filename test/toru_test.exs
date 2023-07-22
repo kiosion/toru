@@ -65,6 +65,89 @@ defmodule ToruApplicationTest do
     assert String.contains?(body, "Stay With Me - Extended Mix")
   end
 
+  test "Filling in provided (valid) SVG" do
+    mock_lfm_response = %HTTPoison.Response{
+      body: Poison.encode!(stub_json()),
+      status_code: 200
+    }
+
+    mock_svg_response = %HTTPoison.Response{
+      body: "<svg>${artist}</svg>",
+      status_code: 200,
+      headers: [{"content-type", "image/svg+xml"}]
+    }
+
+    Toru.MockHTTPClient
+    |> Mox.expect(
+      :get,
+      3,
+      fn url ->
+        cond do
+          String.contains?(url, "format=json") ->
+            {:ok, mock_lfm_response}
+
+          String.contains?(url, "example.com") ->
+            {:ok, mock_svg_response}
+
+          true ->
+            {:ok, %HTTPoison.Response{body: "", status_code: 200}}
+        end
+      end
+    )
+
+    conn =
+      conn(:get, "/api/v1/kiosion?svg_url=https://example.com")
+      |> Toru.Router.call(@opts)
+
+    assert conn.state == :sent
+    assert conn.status == 200
+
+    body = conn.resp_body
+
+    assert String.contains?(body, "Far Out")
+  end
+
+  test "Filling in provided (invalid) svg" do
+    mock_lfm_response = %HTTPoison.Response{
+      body: Poison.encode!(stub_json()),
+      status_code: 200
+    }
+
+    mock_svg_response = %HTTPoison.Response{
+      body: "",
+      status_code: 200
+    }
+
+    Toru.MockHTTPClient
+    |> Mox.expect(
+      :get,
+      3,
+      fn url ->
+        cond do
+          String.contains?(url, "format=json") ->
+            {:ok, mock_lfm_response}
+
+          String.contains?(url, "example.com") ->
+            {:ok, mock_svg_response}
+
+          true ->
+            {:ok, %HTTPoison.Response{body: "", status_code: 200}}
+        end
+      end
+    )
+
+    conn =
+      conn(:get, "/api/v1/kiosion?svg_url=https://example.com")
+      |> Toru.Router.call(@opts)
+
+    assert conn.state == :sent
+    assert conn.status == 415
+
+    body = Poison.decode!(conn.resp_body)
+
+    assert body["message"] == "Provided SVG resource is not of type image/svg+xml"
+  end
+
   test "GET json res from API" do
     mock_response = %HTTPoison.Response{
       body: Poison.encode!(stub_json()),

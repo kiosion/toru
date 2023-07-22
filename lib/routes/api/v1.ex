@@ -197,24 +197,24 @@ defmodule Api.V1 do
              {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <-
                Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(svgUrl) do
           headers
-          |> Enum.find(fn {k, _} -> k == "Content-Type" end)
+          |> Enum.find(fn {k, _} -> k == "Content-Type" or k == "content-type" end)
           |> case do
             {_, v} ->
-              # TODO: If resource is not an svg, return 415
               cond do
                 v == "image/svg+xml" -> body
                 v == "image/svg" -> body
-                true -> nil
+                true -> {:error, {415, "Provided SVG resource is not of type image/svg+xml"}}
               end
 
             _ ->
-              nil
+              {:error, {415, "Provided SVG resource is not of type image/svg+xml"}}
           end
         else
-          _ -> nil
+          false -> nil
+          _ -> {:error, {500, "Failed to fetch SVG resource"}}
         end
       rescue
-        _ -> nil
+        _ -> {:error, {500, "Failed to fetch SVG resource"}}
       end
 
     %{data: cover_art_data, mime_type: cover_art_mime_type} = Task.await(cover_art)
@@ -226,36 +226,44 @@ defmodule Api.V1 do
         :album => recent_track["album"]["#text"]
       })
 
-    svg =
-      if svg == nil do
-        construct_svg(%{
-          :title => values.title,
-          :artist => values.artist,
-          :album => values.album,
-          :playing => nowplaying,
-          :cover_art => cover_art_data,
-          :mime_type => cover_art_mime_type,
-          :theme => params.theme,
-          :art_radius => params.album_radius,
-          :border_radius => params.border_radius,
-          :border_width => params.border_width,
-          :blur => params.blur
-        })
-      else
-        svg
-        |> replace_in_string!(
-          %{
+    case svg do
+      nil ->
+        {
+          :ok,
+          construct_svg(%{
             :title => values.title,
             :artist => values.artist,
             :album => values.album,
-            :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
-            :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}"
-          },
-          ~r/\${(.*?)}/u
-        )
-      end
+            :playing => nowplaying,
+            :cover_art => cover_art_data,
+            :mime_type => cover_art_mime_type,
+            :theme => params.theme,
+            :art_radius => params.album_radius,
+            :border_radius => params.border_radius,
+            :border_width => params.border_width,
+            :blur => params.blur
+          })
+        }
 
-    svg
+      {:error, {code, msg}} ->
+        {:error, {code, msg}}
+
+      _ ->
+        {
+          :ok,
+          svg
+          |> replace_in_string!(
+            %{
+              :title => values.title,
+              :artist => values.artist,
+              :album => values.album,
+              :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+              :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}"
+            },
+            ~r/\${(.*?)}/u
+          )
+        }
+    end
   end
 
   def get_json(params, recent_track) do
@@ -307,11 +315,16 @@ defmodule Api.V1 do
           })
         )
       else
-        svg = get_svg(params, recent_track)
-
-        conn
-        |> set_headers()
-        |> send_resp(200, svg)
+        with {:ok, svg} <- get_svg(params, recent_track) do
+          conn
+          |> set_headers()
+          |> send_resp(200, svg)
+        else
+          {:error, {code, msg}} ->
+            conn
+            |> set_headers()
+            |> json_response(code, %{status: code, message: msg})
+        end
       end
     else
       {:error, res} ->
