@@ -1,11 +1,12 @@
 name: CI
 
 on:
-  workflow_dispatch:
-  workflow_call:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+    paths-ignore:
+      - '**/*.md'
+      - 'Makefile'
+      - '.gitignore'
 
 concurrency:
   group: ci
@@ -15,20 +16,42 @@ jobs:
   test:
     name: Tests
     uses: ./.github/workflows/test.yml
-  release:
-    needs: test
-    name: Release
-    runs-on: self-hosted
+
+  build:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: [ test ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Restore dependencies cache
-        uses: actions/cache@v3
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to GCP Artifact Registry
+        uses: docker/login-action@v2
         with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
-      - name: Build for production
-        run: LFM_TOKEN=${{ secrets.LFM_TOKEN }} PORT=3000 make release
-      - name: Run release
-        run: make run
+          registry: us-central1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.GCP_AR_KEY }}
+      - name: Build & Push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:${{ github.sha }}
+            us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:latest
+          build-args: |
+            LFM_TOKEN=${{ secrets.LFM_TOKEN }}
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    steps:
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          service_account_key: ${{ secrets.GCP_CR_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy toru-prod --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:latest --region us-central1 --platform managed
