@@ -1,33 +1,26 @@
 #!/usr/bin/env bash
 
 set -e
-PORT=3000
-while getopts ":t:" opt; do
-  case ${opt} in
-    t) LFM_TOKEN="${OPTARG}"
-      ;;
-    ?) echo "Invalid option -${OPTARG}" >&2
-      exit 2
-      ;;
-    :) echo "Option -${OPTARG} requires an argument." >&2
-      exit 1
-      ;;
-  esac
-done
-if [ -z "${LFM_TOKEN}" ]; then
-  echo "ERROR: Missing or invalid argument for token: -t [token]"
+
+if [ -z "$1" ]; then
+  echo "ERROR: Missing or invalid argument for token: [token]"
   exit 1
 fi
+
+LFM_TOKEN="$1"
+
+quiet() {
+  "$@" > /dev/null
+}
+
 printf "Starting release build...\r"
 cd /app
 sed -i "s/{{LFM_TOKEN}}/${LFM_TOKEN}/g" ./config/prod.env.exs
 printf "Fetching project dependencies...\r"
-export MIX_ENV=prod
-mix local.rebar --if-missing --force > /dev/null
-mix local.hex --if-missing --force > /dev/null
-mix deps.get > /dev/null
-mix do clean, compile --force > /dev/null
+quiet mix local.rebar --if-missing --force
+quiet mix local.hex --if-missing --force
+MIX_ENV=prod quiet mix deps.get && mix do clean, compile --force
 printf "Building release...\r"
-mix release prod --overwrite
+MIX_ENV=prod mix release prod --overwrite
 printf "Release built successfully!\r"
 exit 0

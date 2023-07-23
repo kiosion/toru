@@ -1,31 +1,23 @@
-.PHONY: dev release run test clean
+SHELL:=/bin/bash
 
-DOCKER_EXISTS := $(shell docker --help > /dev/null 2>&1; echo $$?)
+.PHONY: dev test clean
 
-PORT ?= 3000
-
-install: SHELL:=/bin/bash
 install:
-	@mix local.hex --if-missing --force > /dev/null
-	@mix local.rebar --force > /dev/null
-	@mix deps.get > /dev/null
-
-dev: SHELL:=/bin/bash
-dev: # Run the development environment
-	@bash -c "printf \"Building dependencies\r\" &&\
+	@bash -c "printf \"Fetching dependencies...\r\" &&\
 	mix local.hex --if-missing --force > /dev/null &&\
-	mix local.rebar --if-missing --force > /dev/null &&\
-	mix deps.get > /dev/null && \
-	mix do clean, compile > /dev/null &&\
-	printf \"\n\r\""
+	mix local.rebar --force > /dev/null &&\
+	mix deps.get > /dev/null &&\
+	printf \"\033[K\r\""
+
+dev: install # Run the development environment
+	@printf "Starting dev server..."
+	@mix do clean, compile > /dev/null
 	@source ./.env && LFM_TOKEN=$$LFM_TOKEN mix run --no-halt
 
-test: SHELL:=/bin/bash
-test: install
-test: # Run the mix test suite
+test: install # Run the mix test suite
+	@printf "Running tests...\n"
 	@mix deps.compile --only test
 	@MIX_ENV=test mix test
 
-clean: SHELL:=/bin/bash
 clean: # Remove unused dirs
 	@rm -rf ./_build ./deps ./erl_crash.dump
