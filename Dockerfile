@@ -2,7 +2,6 @@ FROM elixir:1.14.5-alpine AS builder
 
 RUN apk update && apk add bash openssl libgcc libstdc++ ncurses-libs
 
-ARG PORT=3000
 ARG LFM_TOKEN
 
 RUN mkdir /app
@@ -13,7 +12,7 @@ COPY mix.exs mix.lock ./
 COPY lib lib
 COPY config config
 
-RUN ./release -p $PORT -t $LFM_TOKEN
+RUN ./release -t $LFM_TOKEN
 
 FROM alpine:3.17.4 AS app
 

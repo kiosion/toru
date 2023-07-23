@@ -96,7 +96,7 @@ defmodule Api.V1 do
                  Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(url) do
             mime_type =
               headers
-              |> Enum.find(fn {k, _} -> k == "Content-Type" end)
+              |> Enum.find(fn {k, _} -> k == "Content-Type" or k == "content-type" end)
               |> case do
                 {_, v} -> v
                 _ -> "image/jpeg"

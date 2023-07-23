@@ -2,11 +2,9 @@
 
 set -e
 PORT=3000
-while getopts ":t:p:" opt; do
+while getopts ":t:" opt; do
   case ${opt} in
     t) LFM_TOKEN="${OPTARG}"
-      ;;
-    p) PORT="${OPTARG}"
       ;;
     ?) echo "Invalid option -${OPTARG}" >&2
       exit 2
@@ -23,7 +21,6 @@ fi
 printf "Starting release build...\r"
 cd /app
 sed -i "s/{{LFM_TOKEN}}/${LFM_TOKEN}/g" ./config/prod.env.exs
-sed -i "s/{{PORT}}/${PORT}/g" ./config/prod.env.exs
 printf "Fetching project dependencies...\r"
 export MIX_ENV=prod
 mix local.rebar --if-missing --force > /dev/null
