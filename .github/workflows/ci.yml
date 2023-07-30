@@ -42,16 +42,20 @@ jobs:
             us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:latest
           build-args: |
             LFM_TOKEN=${{ secrets.LFM_TOKEN }}
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [ build ]
     steps:
-      - name: Setup GCloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.1
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
         with:
-          service_account_key: ${{ secrets.GCP_CR_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy toru-prod --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:latest --region us-central1 --platform managed
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            docker pull us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:latest
+            docker stop toru-prod || true
+            docker rm toru-prod || true
+            docker run -d --rm --name toru-prod -p 8080:8080 -e PORT=8080 us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/docker/toru-prod:latest
