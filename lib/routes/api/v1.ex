@@ -6,6 +6,8 @@ defmodule Api.V1 do
 
   require Logger
 
+  @themes get_asset(:themes)
+
   plug(:match)
 
   plug(:fetch_query_params)
@@ -17,20 +19,6 @@ defmodule Api.V1 do
   )
 
   plug(:dispatch)
-
-  @themes get_asset(:themes)
-
-  @default_params %{
-    :theme => "light",
-    :border_width => "1.6",
-    :border_radius => "22",
-    :album_radius => "18",
-    :svg_url => nil,
-    :url => nil,
-    :blur => nil,
-    :res => "svg",
-    :cover_size => "large"
-  }
 
   @spec construct_svg(
           atom
@@ -94,7 +82,7 @@ defmodule Api.V1 do
     |> String.replace(~r{>\s+<}, "><")
   end
 
-  @spec fetch_cover_art(String.t()) :: binary()
+  @spec fetch_cover_art(String.t()) :: binary
   defp fetch_cover_art(url) do
     # Eventually, set a fallback image hash here
     fallback = %{:mime_type => "", :data => ""}
@@ -131,20 +119,33 @@ defmodule Api.V1 do
   end
 
   @spec set_headers(Plug.Conn.t()) :: Plug.Conn.t()
-  defp set_headers(conn),
-    do:
-      conn
-      |> put_resp_header("content-type", "image/svg+xml")
-      |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
-      |> put_resp_header("access-control-allow-origin", "*")
-      |> put_resp_header(
-        "access-control-allow-headers",
-        "content-type, access-control-allow-headers, access-control-allow-origin, accept"
-      )
-      |> put_resp_header("pragma", "no-cache")
-      |> put_resp_header("expires", "0")
+  defp set_headers(conn) do
+    conn
+    |> put_resp_header("content-type", "image/svg+xml")
+    |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
+    |> put_resp_header("access-control-allow-origin", "*")
+    |> put_resp_header(
+      "access-control-allow-headers",
+      "content-type, access-control-allow-headers, access-control-allow-origin, accept"
+    )
+    |> put_resp_header("pragma", "no-cache")
+    |> put_resp_header("expires", "0")
+  end
 
-  @spec start_cover_art_task(map(), map()) :: Task.t()
+  @spec default_params() :: map()
+  defp default_params,
+    do: %{
+      :theme => "light",
+      :border_width => "1.6",
+      :border_radius => "22",
+      :album_radius => "18",
+      :svg_url => nil,
+      :url => nil,
+      :blur => nil,
+      :res => "svg",
+      :cover_size => "large"
+    }
+
   defp start_cover_art_task(params, recent_track) do
     Task.async(fn ->
       req_size =
@@ -173,118 +174,98 @@ defmodule Api.V1 do
     end)
   end
 
-  @spec determine_nowplaying(map()) :: boolean()
-  defp determine_nowplaying(recent_track) do
-    recent_track
-    |> Map.get("@attr", %{})
-    |> Map.get("nowplaying", "false")
-    |> (fn status -> status == "true" or status == true end).()
-  end
+  def get_svg(params, recent_track) do
+    nowplaying =
+      recent_track
+      |> Map.get("@attr", %{})
+      |> Map.get("nowplaying", "false")
+      |> (fn status -> status == "true" or status == true end).()
 
-  @spec determine_svg_url(map()) :: binary | nil
-  defp determine_svg_url(%{svg_url: svg_url}), do: svg_url
-  defp determine_svg_url(%{url: url}), do: url
-  defp determine_svg_url(_params), do: nil
+    cover_art = start_cover_art_task(params, recent_track)
 
-  @spec validate_svg_content(map(), binary()) :: String.t() | {:error, {integer(), String.t()}}
-  defp validate_svg_content(headers, body) do
-    headers
-    |> Enum.find(fn {k, _} -> k == "Content-Type" or k == "content-type" end)
-    |> case do
-      {_, v} when v in ["image/svg+xml", "image/svg"] -> body
-      _ -> {:error, {415, "Provided SVG resource is not of type image/svg+xml"}}
-    end
-  end
-
-  @spec fetch_and_validate_custom_svg(binary()) :: String.t() | {:error, {integer(), String.t()}}
-  defp fetch_and_validate_custom_svg(svgUrl) when is_binary(svgUrl) do
-    try do
-      with {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <-
-             Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(svgUrl) do
-        validate_svg_content(headers, body)
+    # For backwards compatibility, set 'svg_url' to value of 'url' if it's set
+    svgUrl =
+      if params.url != nil do
+        params.url
       else
+        params.svg_url
+      end
+
+    svg =
+      try do
+        with true <- is_binary(svgUrl),
+             {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} <-
+               Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient).get(svgUrl) do
+          headers
+          |> Enum.find(fn {k, _} -> k == "Content-Type" or k == "content-type" end)
+          |> case do
+            {_, v} ->
+              cond do
+                v == "image/svg+xml" -> body
+                v == "image/svg" -> body
+                true -> {:error, {415, "Provided SVG resource is not of type image/svg+xml"}}
+              end
+
+            _ ->
+              {:error, {415, "Provided SVG resource is not of type image/svg+xml"}}
+          end
+        else
+          false -> nil
+          _ -> {:error, {500, "Failed to fetch SVG resource"}}
+        end
+      rescue
         _ -> {:error, {500, "Failed to fetch SVG resource"}}
       end
-    rescue
-      _ -> {:error, {500, "Failed to fetch SVG resource"}}
+
+    %{data: cover_art_data, mime_type: cover_art_mime_type} = Task.await(cover_art)
+
+    values =
+      html_encode(%{
+        :title => recent_track["name"],
+        :artist => recent_track["artist"]["#text"],
+        :album => recent_track["album"]["#text"]
+      })
+
+    case svg do
+      nil ->
+        {
+          :ok,
+          construct_svg(%{
+            :title => values.title,
+            :artist => values.artist,
+            :album => values.album,
+            :playing => nowplaying,
+            :cover_art => cover_art_data,
+            :mime_type => cover_art_mime_type,
+            :theme => params.theme,
+            :art_radius => params.album_radius,
+            :border_radius => params.border_radius,
+            :border_width => params.border_width,
+            :blur => params.blur
+          })
+        }
+
+      {:error, {code, msg}} ->
+        {:error, {code, msg}}
+
+      _ ->
+        {
+          :ok,
+          svg
+          |> replace_in_string!(
+            %{
+              :title => values.title,
+              :artist => values.artist,
+              :album => values.album,
+              :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
+              :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}"
+            },
+            ~r/\${(.*?)}/u
+          )
+        }
     end
   end
 
-  defp fetch_and_validate_custom_svg(_), do: nil
-
-  @spec encode_svg_values(map()) :: map()
-  defp encode_svg_values(recent_track) do
-    html_encode(%{
-      :title => recent_track["name"],
-      :artist => recent_track["artist"]["#text"],
-      :album => recent_track["album"]["#text"]
-    })
-  end
-
-  @spec get_svg(
-          nil,
-          boolean(),
-          Task.t(),
-          map(),
-          map()
-        ) :: {:ok, String.t()}
-  defp get_svg(nil, nowplaying, values, cover_art, params) do
-    %{data: cover_art_data, mime_type: cover_art_mime_type} = Task.await(cover_art)
-
-    {
-      :ok,
-      construct_svg(%{
-        :title => values.title,
-        :artist => values.artist,
-        :album => values.album,
-        :playing => nowplaying,
-        :cover_art => cover_art_data,
-        :mime_type => cover_art_mime_type,
-        :theme => params.theme,
-        :art_radius => params.album_radius,
-        :border_radius => params.border_radius,
-        :border_width => params.border_width,
-        :blur => params.blur
-      })
-    }
-  end
-
-  @spec get_svg(
-          {:error, {integer(), String.t()}},
-          boolean(),
-          Task.t(),
-          map(),
-          map()
-        ) :: {:error, {integer(), String.t()}}
-  defp get_svg({:error, _} = error, _, _, _, _), do: error
-
-  @spec get_svg(
-          String.t(),
-          boolean(),
-          Task.t(),
-          map(),
-          map()
-        ) :: {:ok, String.t()}
-  defp get_svg(svg, _nowplaying, values, cover_art, _params) when is_binary(svg) do
-    %{data: cover_art_data, mime_type: cover_art_mime_type} = Task.await(cover_art)
-
-    {
-      :ok,
-      replace_in_string!(
-        svg,
-        %{
-          :title => values.title,
-          :artist => values.artist,
-          :album => values.album,
-          :cover_art => "data:#{cover_art_mime_type};base64,#{cover_art_data}",
-          :image => "data:#{cover_art_mime_type};base64,#{cover_art_data}"
-        },
-        ~r/\${(.*?)}/u
-      )
-    }
-  end
-
-  @spec get_json(map(), nil | maybe_improper_list | map()) :: map()
   def get_json(params, recent_track) do
     cover_art = start_cover_art_task(params, recent_track)
 
@@ -304,45 +285,6 @@ defmodule Api.V1 do
     }
   end
 
-  @spec handle_res_type(Plug.Conn.t(), binary(), map(), nil | maybe_improper_list() | map()) ::
-          Plug.Conn.t()
-  defp handle_res_type(conn, "json", params, recent_track) do
-    json_info = get_json(params, recent_track)
-
-    conn
-    |> set_headers()
-    |> put_resp_header("content-type", "application/json")
-    |> send_resp(
-      200,
-      Poison.encode!(%{
-        :status => 200,
-        :data => json_info
-      })
-    )
-  end
-
-  @spec handle_res_type(Plug.Conn.t(), binary(), map(), nil | maybe_improper_list() | map()) ::
-          Plug.Conn.t()
-  defp handle_res_type(conn, _type, params, recent_track) do
-    case determine_svg_url(params)
-         |> fetch_and_validate_custom_svg()
-         |> get_svg(
-           determine_nowplaying(recent_track),
-           encode_svg_values(recent_track),
-           start_cover_art_task(params, recent_track),
-           params
-         ) do
-      {:ok, svg} ->
-        conn |> set_headers() |> send_resp(200, svg)
-
-      {:error, {code, msg}} ->
-        Logger.error("Error generating SVG: #{inspect({code, msg})}")
-
-        conn
-        |> json_response(code, %{status: code, message: msg})
-    end
-  end
-
   options "/:username" do
     conn
     |> put_resp_header("access-control-allow-methods", "GET, OPTIONS")
@@ -355,38 +297,84 @@ defmodule Api.V1 do
   end
 
   get "/:username" do
-    with params <-
-           fetch_query_params(conn).query_params |> validate_query_params(@default_params),
-         # TODO: This fetch should be batched with the one for fetching custom svg asset and passed to
-         # handle_res_type as a Task (if applicable)
-         {:ok, res} <- fetch_res(lfm_url!(username)),
+    params = fetch_query_params(conn).query_params |> validate_query_params(default_params())
+
+    with {:ok, res} <- fetch_res(lfm_url!(username)),
          [recent_track | _] <- res |> Map.get("recenttracks", []) |> Map.get("track", []) do
-      conn |> handle_res_type(params.res, params, recent_track)
+      if params.res == "json" do
+        json_info = get_json(params, recent_track)
+
+        conn
+        |> set_headers()
+        |> put_resp_header("content-type", "application/json")
+        |> send_resp(
+          200,
+          Poison.encode!(%{
+            :status => 200,
+            :data => json_info
+          })
+        )
+      else
+        with {:ok, svg} <- get_svg(params, recent_track) do
+          conn
+          |> set_headers()
+          |> send_resp(200, svg)
+        else
+          {:error, {code, msg}} ->
+            conn
+            |> set_headers()
+            |> json_response(code, %{status: code, message: msg})
+        end
+      end
     else
       {:error, res} ->
-        Logger.notice("Error: #{res.reason}")
+        reason = res.reason
+        Logger.notice("Error: #{reason}")
 
         case res.code do
           404 ->
             conn
-            |> json_response(404, %{
-              status: 404,
-              message: "Not found",
-              detail: "Specified user '#{html_encode(username)}' does not exist or is private"
-            })
+            |> set_headers()
+            |> send_resp(
+              404,
+              construct_svg(%{
+                :title => "Error",
+                :artist => "404",
+                :album => "User not found",
+                :playing => false,
+                :cover_art => "",
+                :mime_type => "image/jpeg",
+                :theme => params.theme,
+                :art_radius => params.album_radius,
+                :border_radius => params.border_radius,
+                :border_width => params.border_width,
+                :blur => params.blur
+              })
+            )
 
           _ ->
-            conn
-            |> json_response(500, %{status: 500, message: "Internal Error", detail: res.reason})
+            conn |> json_response(500, %{status: 500, message: "Internal Error", detail: reason})
         end
 
       _ ->
         conn
-        |> json_response(400, %{
-          status: 400,
-          message: "Bad Request",
-          detail: "No recent tracks found"
-        })
+        |> set_headers()
+        |> send_resp(
+          400,
+          construct_svg(%{
+            :title => "Error",
+            :artist => "400",
+            :album => "No recent tracks found",
+            :playing => false,
+            :cover_art => "",
+            :mime_type => "image/jpeg",
+            :theme => params.theme,
+            :border_radius => params.border_radius,
+            :art_radius => params.album_radius,
+            :border_width => params.border_width,
+            :blur => params.blur
+          })
+        )
     end
   end
 
