@@ -42,10 +42,10 @@ defmodule Toru.Utils do
         Map.put(acc, key, html_encode(value))
       end)
 
-  @spec validate_query_params(map(), map()) :: map()
   @doc """
   Take in map of query params and map of expected as `String.t() => String.t()`, return map of `atom => String.t()`
   """
+  @spec validate_query_params(map(), map()) :: map()
   def validate_query_params(params, expected) do
     atomized_params = Enum.into(params, %{}, fn {key, value} -> {String.to_atom(key), value} end)
 
@@ -63,69 +63,125 @@ defmodule Toru.Utils do
     "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username |> URI.encode_www_form()}&api_key=#{Toru.Env.get!(:lfm_token)}&format=json&limit=2"
   end
 
-  @spec fetch_res(String.t()) ::
+  @spec fetch_res(String.t(), atom()) ::
           {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
-  def fetch_res(url) do
-    with {:ok, value} <- Cache.get(url) do
-      {:ok, value}
-    else
-      _ ->
-        http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
-
-        case http_client.get(url) do
-          {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-            value = Poison.decode!(body)
-            Cache.put(url, value, 30)
+  def fetch_res(url, cache \\ :cache) do
+    try do
+      case cache do
+        :cache ->
+          with {:ok, value} <- Cache.get(url) do
             {:ok, value}
+          else
+            _ -> make_http_request(url)
+          end
 
-          {:ok, %HTTPoison.Response{status_code: 404}} ->
-            {:error, %{:code => 404, :reason => "User not found"}}
-
-          {:ok, %HTTPoison.Response{status_code: 400}} ->
-            {:error, %{:code => 400, :reason => "Invalid request"}}
-
-          {:ok, %HTTPoison.Response{status_code: 403}} ->
-            {:error, %{:code => 403, :reason => "Invalid API key"}}
-
-          {:ok, %HTTPoison.Response{status_code: 429}} ->
-            {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
-
-          {:error, %HTTPoison.Error{reason: reason}} ->
-            {:error, %{:code => 500, :reason => reason}}
-
-          _ ->
-            {:error, %{:code => 500, :reason => "Unknown error"}}
-        end
+        :no_cache ->
+          make_http_request(url)
+      end
+    rescue
+      _ ->
+        {:error, %{:code => 500, :reason => "Unknown error fetching data"}}
     end
   end
 
-  def fetch_res(url, :no_cache) do
+  defp make_http_request(url) do
     http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
 
     case http_client.get(url) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         value = Poison.decode!(body)
+        Cache.put(url, value, 30)
         {:ok, value}
 
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
-        {:error, %{:code => 404, :reason => "User not found"}}
-
-      {:ok, %HTTPoison.Response{status_code: 400}} ->
-        {:error, %{:code => 400, :reason => "Invalid request"}}
-
-      {:ok, %HTTPoison.Response{status_code: 403}} ->
-        {:error, %{:code => 403, :reason => "Invalid API key"}}
-
-      {:ok, %HTTPoison.Response{status_code: 429}} ->
-        {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
+      {:ok, %HTTPoison.Response{status_code: code}} when code in [400, 403, 404, 429] ->
+        {:error, %{:code => code, :reason => get_error_reason(code)}}
 
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, %{:code => 500, :reason => reason}}
 
       _ ->
-        {:error, %{:code => 500, :reason => "Unknown error"}}
+        {:error, %{:code => 500, :reason => "Unknown upstream error"}}
     end
   end
+
+  defp get_error_reason(400), do: "Invalid request"
+  defp get_error_reason(403), do: "Invalid API key"
+  defp get_error_reason(404), do: "User not found"
+  defp get_error_reason(429), do: "Rate limit exceeded"
+
+  # @spec fetch_res(String.t()) ::
+  #         {:error, %{:code => integer(), :reason => String.t()}} | {:ok, map()}
+  # def fetch_res(url) do
+  #   try do
+  #     with {:ok, value} <- Cache.get(url) do
+  #       {:ok, value}
+  #     else
+  #       _ ->
+  #         http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
+
+  #         case http_client.get(url) do
+  #           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+  #             value = Poison.decode!(body)
+  #             Cache.put(url, value, 30)
+  #             {:ok, value}
+
+  #           {:ok, %HTTPoison.Response{status_code: 404}} ->
+  #             {:error, %{:code => 404, :reason => "User not found"}}
+
+  #           {:ok, %HTTPoison.Response{status_code: 400}} ->
+  #             {:error, %{:code => 400, :reason => "Invalid request"}}
+
+  #           {:ok, %HTTPoison.Response{status_code: 403}} ->
+  #             {:error, %{:code => 403, :reason => "Invalid API key"}}
+
+  #           {:ok, %HTTPoison.Response{status_code: 429}} ->
+  #             {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
+
+  #           {:error, %HTTPoison.Error{reason: reason}} ->
+  #             {:error, %{:code => 500, :reason => reason}}
+
+  #           _ ->
+  #             {:error, %{:code => 500, :reason => "Unknown error"}}
+  #         end
+  #     end
+  #   rescue
+  #     _ ->
+  #       {:error, %{:code => 500, :reason => "Unknown error fetching data"}}
+  #   end
+  # end
+
+  # def fetch_res(url, :no_cache) do
+  #   try do
+  #     http_client = Application.get_env(:toru, :http_client, Toru.DefaultHTTPClient)
+
+  #     case http_client.get(url) do
+  #       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+  #         value = Poison.decode!(body)
+  #         {:ok, value}
+
+  #       {:ok, %HTTPoison.Response{status_code: 404}} ->
+  #         {:error, %{:code => 404, :reason => "User not found"}}
+
+  #       {:ok, %HTTPoison.Response{status_code: 400}} ->
+  #         {:error, %{:code => 400, :reason => "Invalid request"}}
+
+  #       {:ok, %HTTPoison.Response{status_code: 403}} ->
+  #         {:error, %{:code => 403, :reason => "Invalid API key"}}
+
+  #       {:ok, %HTTPoison.Response{status_code: 429}} ->
+  #         {:error, %{:code => 429, :reason => "Rate limit exceeded"}}
+
+  #       {:error, %HTTPoison.Error{reason: reason}} ->
+  #         {:error, %{:code => 500, :reason => reason}}
+
+  #       _ ->
+  #         {:error, %{:code => 500, :reason => "Unknown error"}}
+  #     end
+  #   rescue
+  #     _ ->
+  #       {:error, %{:code => 500, :reason => "Unknown error fetching data"}}
+  #   end
+  # end
 
   @spec playing_indicator(boolean()) :: String.t()
   def playing_indicator(playing) do
