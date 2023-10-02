@@ -210,7 +210,7 @@ defmodule Api.V1 do
     end
   end
 
-  defp fetch_and_validate_custom_svg(_svgUrl), do: nil
+  defp fetch_and_validate_custom_svg(_), do: nil
 
   @spec encode_svg_values(map()) :: map()
   defp encode_svg_values(recent_track) do
@@ -265,7 +265,7 @@ defmodule Api.V1 do
           map(),
           map()
         ) :: {:ok, String.t()}
-  defp get_svg(svg, _nowplaying, values, cover_art, _params) do
+  defp get_svg(svg, _nowplaying, values, cover_art, _params) when is_binary(svg) do
     %{data: cover_art_data, mime_type: cover_art_mime_type} = Task.await(cover_art)
 
     {
@@ -336,6 +336,8 @@ defmodule Api.V1 do
         conn |> set_headers() |> send_resp(200, svg)
 
       {:error, {code, msg}} ->
+        Logger.error("Error generating SVG: #{inspect({code, msg})}")
+
         conn
         |> json_response(code, %{status: code, message: msg})
     end
