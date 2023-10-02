@@ -42,10 +42,10 @@ defmodule Toru.Utils do
         Map.put(acc, key, html_encode(value))
       end)
 
+  @spec validate_query_params(map(), map()) :: map()
   @doc """
   Take in map of query params and map of expected as `String.t() => String.t()`, return map of `atom => String.t()`
   """
-  @spec validate_query_params(map(), map()) :: map()
   def validate_query_params(params, expected) do
     atomized_params = Enum.into(params, %{}, fn {key, value} -> {String.to_atom(key), value} end)
 
