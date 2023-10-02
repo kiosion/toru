@@ -182,8 +182,8 @@ defmodule Api.V1 do
   end
 
   @spec determine_svg_url(map()) :: binary | nil
-  defp determine_svg_url(%{svg_url: svg_url}), do: svg_url
-  defp determine_svg_url(%{url: url}), do: url
+  defp determine_svg_url(%{svg_url: svg_url}) when is_binary(svg_url), do: svg_url
+  defp determine_svg_url(%{url: url}) when is_binary(url), do: url
   defp determine_svg_url(_params), do: nil
 
   @spec validate_svg_content(map(), binary()) :: String.t() | {:error, {integer(), String.t()}}
@@ -336,7 +336,7 @@ defmodule Api.V1 do
         conn |> set_headers() |> send_resp(200, svg)
 
       {:error, {code, msg}} ->
-        Logger.error("Error generating SVG: #{inspect({code, msg})}")
+        Logger.warning("Error generating response: #{inspect({code, msg})}")
 
         conn
         |> json_response(code, %{status: code, message: msg})
@@ -364,7 +364,7 @@ defmodule Api.V1 do
       conn |> handle_res_type(params.res, params, recent_track)
     else
       {:error, res} ->
-        Logger.notice("Error: #{res.reason}")
+        Logger.warning("Failed to fetch valid upstream response: #{res.reason}")
 
         case res.code do
           404 ->

@@ -2,6 +2,7 @@ defmodule ToruApplicationTest do
   use ExUnit.Case
   use Plug.Test
 
+  import ExUnit.CaptureLog
   import Mox
 
   doctest Toru.Application
@@ -60,19 +61,20 @@ defmodule ToruApplicationTest do
 
     body = conn.resp_body
 
-    # Check for strings within the SVG for now
     assert String.contains?(body, "Far Out")
     assert String.contains?(body, "Stay With Me - Extended Mix")
   end
 
-  test "Filling in provided (valid) SVG" do
+  test "Filling in provided SVG - via 'svg_url' param" do
     mock_lfm_response = %HTTPoison.Response{
       body: Poison.encode!(stub_json()),
       status_code: 200
     }
 
     mock_svg_response = %HTTPoison.Response{
-      body: "<svg>${artist}</svg>",
+      body: """
+      <svg data-testattr="true">${artist}</svg>
+      """,
       status_code: 200,
       headers: [{"content-type", "image/svg+xml"}]
     }
@@ -105,9 +107,55 @@ defmodule ToruApplicationTest do
     body = conn.resp_body
 
     assert String.contains?(body, "Far Out")
+    assert String.contains?(body, "data-testattr=\"true\"")
   end
 
-  test "Filling in provided (invalid) svg" do
+  test "Filling in provided SVG - via 'url' param" do
+    mock_lfm_response = %HTTPoison.Response{
+      body: Poison.encode!(stub_json()),
+      status_code: 200
+    }
+
+    mock_svg_response = %HTTPoison.Response{
+      body: """
+      <svg data-testattr="true">${artist}</svg>
+      """,
+      status_code: 200,
+      headers: [{"content-type", "image/svg+xml"}]
+    }
+
+    Toru.MockHTTPClient
+    |> Mox.expect(
+      :get,
+      3,
+      fn url ->
+        cond do
+          String.contains?(url, "format=json") ->
+            {:ok, mock_lfm_response}
+
+          String.contains?(url, "example.com") ->
+            {:ok, mock_svg_response}
+
+          true ->
+            {:ok, %HTTPoison.Response{body: "", status_code: 200}}
+        end
+      end
+    )
+
+    conn =
+      conn(:get, "/api/v1/kiosion?url=https://example.com")
+      |> Toru.Router.call(@opts)
+
+    assert conn.state == :sent
+    assert conn.status == 200
+
+    body = conn.resp_body
+
+    assert String.contains?(body, "Far Out")
+    assert String.contains?(body, "data-testattr=\"true\"")
+  end
+
+  test "Filling in provided svg - invalid asset" do
     mock_lfm_response = %HTTPoison.Response{
       body: Poison.encode!(stub_json()),
       status_code: 200
@@ -136,19 +184,32 @@ defmodule ToruApplicationTest do
       end
     )
 
-    conn =
-      conn(:get, "/api/v1/kiosion?svg_url=https://example.com")
-      |> Toru.Router.call(@opts)
+    log_output =
+      capture_log(fn ->
+        conn =
+          conn(:get, "/api/v1/kiosion?svg_url=https://example.com")
+          |> Toru.Router.call(@opts)
+
+        Process.put(:temp_conn, conn)
+      end)
+
+    conn = Process.get(:temp_conn)
+    Process.delete(:temp_conn)
 
     assert conn.state == :sent
     assert conn.status == 415
 
     body = Poison.decode!(conn.resp_body)
 
+    assert Regex.match?(
+             ~r/\[warning\].*Provided SVG resource is not of type image\/svg\+xml/,
+             log_output
+           )
+
     assert body["message"] == "Provided SVG resource is not of type image/svg+xml"
   end
 
-  test "GET json res from API" do
+  test "GET JSON response" do
     mock_response = %HTTPoison.Response{
       body: Poison.encode!(stub_json()),
       status_code: 200
@@ -193,6 +254,52 @@ defmodule ToruApplicationTest do
     body = Poison.decode!(conn.resp_body)
 
     assert body == expected
+  end
+
+  test "GET JSON response - invalid upstream data" do
+    mock_invalid_json_response = %HTTPoison.Response{
+      body: "{ invalid: JSON }",
+      status_code: 200
+    }
+
+    Toru.MockHTTPClient
+    |> Mox.expect(
+      :get,
+      1,
+      fn url ->
+        if String.contains?(url, "format=json") do
+          {:ok, mock_invalid_json_response}
+        else
+          {:ok, %HTTPoison.Response{body: "", status_code: 200}}
+        end
+      end
+    )
+
+    log_output =
+      capture_log(fn ->
+        conn =
+          conn(:get, "/api/v1/kiosion?res=json")
+          |> Toru.Router.call(@opts)
+
+        Process.put(:temp_conn, conn)
+      end)
+
+    conn = Process.get(:temp_conn)
+    Process.delete(:temp_conn)
+
+    assert conn.state == :sent
+    assert conn.status == 500
+
+    expected_error = %{
+      "status" => 500,
+      "message" => "Internal Error",
+      "detail" => "Unknown error fetching data"
+    }
+
+    body = Poison.decode!(conn.resp_body)
+
+    assert body == expected_error
+    assert Regex.match?(~r/\[warning\].*Failed to fetch valid upstream response/, log_output)
   end
 
   defp stub_json do
