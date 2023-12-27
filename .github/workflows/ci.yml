@@ -49,7 +49,7 @@ jobs:
     needs: [ build ]
     steps:
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@2344d975738ad85c2c0bc848a78cef0d4ce17ec0
         with:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USER }}
