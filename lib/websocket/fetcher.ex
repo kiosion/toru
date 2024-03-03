@@ -91,7 +91,7 @@ defmodule Toru.WS.TrackFetcher do
     with {:ok, res} <- fetch_res(lfm_url!(username), :no_cache),
          [recent_track | _] <- res |> Map.get("recenttracks", []) |> Map.get("track", []) do
       # TODO: This response should be better structured - ideally wrapped in "data" or something
-      Poison.encode!(get_json(%{}, recent_track))
+      Poison.encode!(get_json(%{cover_size: "medium"}, recent_track))
     else
       _ -> nil
     end
