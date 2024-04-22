@@ -39,7 +39,7 @@ defmodule Toru.MixProject do
     [
       {:exsync, "~> 0.2", only: :dev},
       {:ex_doc, "~> 0.14", only: :dev, runtime: false},
-      {:file_system, "~> 0.2", only: :dev},
+      {:file_system, "~> 1.0", only: :dev},
       {:httpoison, "~> 2.0"},
       {:mox, "~> 1.0", only: :test},
       {:plug_cowboy, "~> 2.6"},
