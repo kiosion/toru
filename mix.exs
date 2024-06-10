@@ -43,7 +43,7 @@ defmodule Toru.MixProject do
       {:httpoison, "~> 2.0"},
       {:mox, "~> 1.0", only: :test},
       {:plug_cowboy, "~> 2.6"},
-      {:poison, "~> 4.0"}
+      {:poison, "~> 6.0"}
     ]
   end
 
